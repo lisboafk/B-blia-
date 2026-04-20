@@ -8,6 +8,7 @@ export interface BibleChapter {
   chapter: number
   verses: BibleVerse[]
   source: string
+  error?: boolean
 }
 
 
@@ -17,7 +18,6 @@ export async function fetchChapter(bookId: string, chapter: number): Promise<Bib
     if (!res.ok) throw new Error('API error')
     const data = await res.json()
     if (data.error) throw new Error(data.error)
-
     return { book: bookId, chapter, verses: data.verses, source: data.source }
   } catch {
     return getFallbackChapter(bookId, chapter)
@@ -27,11 +27,7 @@ export async function fetchChapter(bookId: string, chapter: number): Promise<Bib
 function getFallbackChapter(bookId: string, chapter: number): BibleChapter {
   const fallback = FALLBACK_CONTENT[`${bookId}-${chapter}`]
   if (fallback) return { book: bookId, chapter, verses: fallback, source: 'Almeida (Domínio Público)' }
-  return {
-    book: bookId, chapter,
-    verses: [{ verse: 1, text: 'Carregando texto... Verifique sua conexão com a internet.' }],
-    source: 'Offline'
-  }
+  return { book: bookId, chapter, verses: [], source: 'Offline', error: true }
 }
 
 const FALLBACK_CONTENT: Record<string, BibleVerse[]> = {

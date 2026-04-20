@@ -29,6 +29,7 @@ export default function ChapterPage({ params }: Props) {
   const [data, setData] = useState<BibleChapter | null>(null)
   const [loading, setLoading] = useState(true)
   const [revealed, setRevealed] = useState(false)
+  const [retryKey, setRetryKey] = useState(0)
   const [revelation, setRevelation] = useState<{ verse: number; text: string } | null>(null)
   const [showPicker, setShowPicker] = useState(false)
 
@@ -57,7 +58,7 @@ export default function ChapterPage({ params }: Props) {
         }, 500)
       }
     })
-  }, [book, chapterNum])
+  }, [book, chapterNum, retryKey])
 
   const toggleSelect = (v: number) => {
     setSelectedVerses(prev => {
@@ -161,6 +162,20 @@ export default function ChapterPage({ params }: Props) {
             key={`line-${chapterNum}`}
             className="h-px mx-auto bg-gradient-to-r from-transparent via-gold/50 to-transparent unfurl-line"
           />
+        </div>
+      )}
+
+      {/* Error state */}
+      {!loading && data?.error && (
+        <div className="flex flex-col items-center justify-center py-24 gap-4 px-8">
+          <p className="text-parchment/40 text-sm text-center" style={{ fontFamily: 'Cinzel, serif' }}>
+            Não foi possível carregar este capítulo.
+          </p>
+          <button onClick={() => setRetryKey(k => k + 1)}
+            className="px-5 py-2.5 rounded-xl bg-gold/20 border border-gold/40 text-gold text-sm active:scale-95 transition-transform"
+            style={{ fontFamily: 'Cinzel, serif' }}>
+            Tentar novamente
+          </button>
         </div>
       )}
 
