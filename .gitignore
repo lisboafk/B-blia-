@@ -32,3 +32,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# bible data — gerado em build time pelo scripts/fetch-bible.mjs
+/public/bible/
