@@ -12,8 +12,17 @@ const THEME_VERSES: Record<string, { ref: string; book: string; ch: number }[]> 
   'Soberania de Deus': [{ ref: 'Romanos 9:15-16', book: 'romanos', ch: 9 }, { ref: 'Efésios 1:11', book: 'efesios', ch: 1 }, { ref: 'Salmos 115:3', book: 'salmos', ch: 115 }],
   'Graça': [{ ref: 'Efésios 2:8-9', book: 'efesios', ch: 2 }, { ref: 'Tito 2:11', book: 'tito', ch: 2 }, { ref: 'Romanos 3:24', book: 'romanos', ch: 3 }],
   'Justificação': [{ ref: 'Romanos 5:1', book: 'romanos', ch: 5 }, { ref: 'Gálatas 2:16', book: 'galatas', ch: 2 }, { ref: 'Filipenses 3:9', book: 'filipenses', ch: 3 }],
+  'Sola Fide': [{ ref: 'Romanos 3:28', book: 'romanos', ch: 3 }, { ref: 'Gálatas 3:11', book: 'galatas', ch: 3 }, { ref: 'Habacuque 2:4', book: 'habacuque', ch: 2 }],
+  'Sola Gratia': [{ ref: 'Efésios 2:8-9', book: 'efesios', ch: 2 }, { ref: 'Romanos 11:6', book: 'romanos', ch: 11 }, { ref: '2 Timóteo 1:9', book: '2timoteo', ch: 1 }],
   'Eleição': [{ ref: 'Efésios 1:4-5', book: 'efesios', ch: 1 }, { ref: 'João 15:16', book: 'joao', ch: 15 }, { ref: 'Romanos 8:29-30', book: 'romanos', ch: 8 }],
+  'Providência': [{ ref: 'Romanos 8:28', book: 'romanos', ch: 8 }, { ref: 'Salmos 23:1-6', book: 'salmos', ch: 23 }, { ref: 'Mateus 10:29-31', book: 'mateus', ch: 10 }],
   'Redenção': [{ ref: 'Efésios 1:7', book: 'efesios', ch: 1 }, { ref: 'Colossenses 1:14', book: 'colossenses', ch: 1 }, { ref: 'Hebreus 9:12', book: 'hebreus', ch: 9 }],
+  'Messias': [{ ref: 'Isaías 53:1-12', book: 'isaias', ch: 53 }, { ref: 'Lucas 4:18-19', book: 'lucas', ch: 4 }, { ref: 'Gênesis 3:15', book: 'genesis', ch: 3 }],
+  'Encarnação': [{ ref: 'João 1:14', book: 'joao', ch: 1 }, { ref: 'Filipenses 2:6-8', book: 'filipenses', ch: 2 }, { ref: 'Hebreus 2:14', book: 'hebreus', ch: 2 }],
+  'Divindade de Cristo': [{ ref: 'João 1:1-3', book: 'joao', ch: 1 }, { ref: 'Colossenses 2:9', book: 'colossenses', ch: 2 }, { ref: 'Hebreus 1:3', book: 'hebreus', ch: 1 }],
+  'Depravação': [{ ref: 'Romanos 3:10-12', book: 'romanos', ch: 3 }, { ref: 'Jeremias 17:9', book: 'jeremias', ch: 17 }, { ref: 'Efésios 2:1-3', book: 'efesios', ch: 2 }],
+  'Perseverança': [{ ref: 'Romanos 8:38-39', book: 'romanos', ch: 8 }, { ref: 'João 10:28-29', book: 'joao', ch: 10 }, { ref: 'Filipenses 1:6', book: 'filipenses', ch: 1 }],
+  'Esperança': [{ ref: 'Romanos 8:24-25', book: 'romanos', ch: 8 }, { ref: 'Hebreus 6:19', book: 'hebreus', ch: 6 }, { ref: 'Apocalipse 21:4', book: 'apocalipse', ch: 21 }],
   'Fé': [{ ref: 'Hebreus 11:1', book: 'hebreus', ch: 11 }, { ref: 'Romanos 10:17', book: 'romanos', ch: 10 }, { ref: 'Efésios 2:8', book: 'efesios', ch: 2 }],
 }
 
