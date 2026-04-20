@@ -68,8 +68,8 @@ export default function PwaRegister() {
     <>
       {/* Install banner */}
       {showBanner && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 w-full max-w-[400px] px-4 z-[200] animate-slide-up">
-          <div className="rounded-2xl bg-obsidian-light border border-gold/40 shadow-2xl overflow-hidden">
+        <div className="fixed top-4 left-0 right-0 px-4 z-[200]">
+          <div className="max-w-sm mx-auto rounded-2xl bg-obsidian-light border border-gold/40 shadow-2xl overflow-hidden">
             <div className="h-px bg-gradient-to-r from-transparent via-gold/60 to-transparent" />
             <div className="flex items-center gap-3 px-4 py-3">
               <div className="p-2 rounded-xl bg-gold/15 flex-shrink-0">
