@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import PwaRegister from '@/components/PwaRegister'
 import { ThemeProvider } from '@/components/ThemeProvider'
+import ThemeToggle from '@/components/ThemeToggle'
 
 export const metadata: Metadata = {
   title: 'Bíblia Sagrada Reformada',
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-obsidian text-parchment antialiased">
         <ThemeProvider>
           <PwaRegister />
+          <ThemeToggle />
           <div className="relative min-h-screen">
             {children}
           </div>
