@@ -1,0 +1,142 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=IM+Fell+English:ital@0;1&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --gold: #c9a84c;
+  --gold-light: #f0c040;
+  --gold-dark: #8b6914;
+  --fire: #ff6b35;
+  --ember: #ff4500;
+  --parchment: #e8d5a3;
+  --obsidian: #0a0807;
+  --obsidian-light: #140f0a;
+  --scroll-bg: #0f0b08;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background-color: var(--obsidian);
+  color: var(--parchment);
+  font-family: 'Crimson Text', Georgia, serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Mobile-first: max width like a phone */
+#__next, main {
+  max-width: 430px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* Gold shimmer text */
+.text-shimmer {
+  background: linear-gradient(90deg, #8b6914, #c9a84c, #f0c040, #c9a84c, #8b6914);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+/* Sacred glow */
+.sacred-glow {
+  box-shadow: 0 0 20px rgba(201,168,76,0.3), 0 0 40px rgba(201,168,76,0.1);
+}
+
+.sacred-glow:hover {
+  box-shadow: 0 0 30px rgba(201,168,76,0.5), 0 0 60px rgba(201,168,76,0.2);
+  transition: box-shadow 0.3s ease;
+}
+
+/* Fire border */
+.fire-border {
+  border: 1px solid rgba(201,168,76,0.4);
+  position: relative;
+}
+
+.fire-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(135deg, #ff6b35, #c9a84c, #ff4500, #c9a84c);
+  background-size: 300% 300%;
+  border-radius: inherit;
+  z-index: -1;
+  animation: borderFlame 4s ease infinite;
+  opacity: 0.6;
+}
+
+@keyframes borderFlame {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--obsidian); }
+::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+/* Verse text */
+.verse-text {
+  font-family: 'Crimson Text', serif;
+  font-size: 1.15rem;
+  line-height: 1.8;
+  color: #e8d5a3;
+}
+
+.verse-number {
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  color: var(--gold);
+  font-weight: 700;
+  vertical-align: super;
+  margin-right: 4px;
+}
+
+/* Display titles */
+.title-display {
+  font-family: 'IM Fell English', serif;
+  letter-spacing: 0.02em;
+}
+
+.title-cinzel {
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Parchment card */
+.parchment-card {
+  background: linear-gradient(135deg, #1a1208 0%, #0f0b08 100%);
+  border: 1px solid rgba(201,168,76,0.25);
+  border-radius: 12px;
+}
+
+/* Tap/click highlight for verses */
+.verse-highlight-gold { background: rgba(201,168,76,0.12); border-left: 3px solid var(--gold); }
+.verse-highlight-fire { background: rgba(255,107,53,0.12); border-left: 3px solid var(--fire); }
+.verse-highlight-blue { background: rgba(100,150,255,0.10); border-left: 3px solid #6496ff; }
+.verse-highlight-green { background: rgba(100,220,100,0.10); border-left: 3px solid #64dc64; }
+
+/* Page transitions */
+.page-enter { animation: fadeIn 0.4s ease-out forwards; }
+
+/* Bottom nav safe area */
+.bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+/* Backdrop blur for modals */
+.modal-backdrop {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: rgba(10,8,7,0.85);
+}
