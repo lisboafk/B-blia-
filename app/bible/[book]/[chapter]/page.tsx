@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, LayoutGrid, Loader } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import VerseCard from '@/components/VerseCard'
 import RevelationMode from '@/components/RevelationMode'
@@ -36,26 +36,30 @@ export default function ChapterPage({ params }: Props) {
     <div className="min-h-screen pb-32">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-obsidian/95 backdrop-blur-sm border-b border-gold/10">
-        <div className="flex items-center justify-between px-4 py-3">
-          <Link href="/bible" className="p-2 rounded-lg hover:bg-gold/10 transition-colors">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <Link href="/bible" className="p-2 rounded-lg hover:bg-gold/10 transition-colors flex-shrink-0">
             <ChevronLeft size={20} className="text-gold" />
           </Link>
 
-          {/* Center: tapping opens unified picker */}
+          {/* Chapter number card — big, left of book name */}
           <button
             onClick={() => setShowPicker(true)}
-            className="flex flex-col items-center active:opacity-70 transition-opacity"
+            className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gold/15 border border-gold/35 flex items-center justify-center active:scale-95 transition-all sacred-glow"
           >
-            <h2 className="text-gold text-sm font-bold tracking-wider" style={{ fontFamily: 'Cinzel, serif' }}>
-              {bookData?.name || book}
-            </h2>
-            <div className="flex items-center gap-1 mt-0.5">
-              <span className="text-parchment/40 text-xs">Capítulo {chapterNum}</span>
-              <LayoutGrid size={10} className="text-gold/40" />
-            </div>
+            <span className="text-gold-light text-2xl font-bold leading-none" style={{ fontFamily: 'Cinzel, serif' }}>
+              {chapterNum}
+            </span>
           </button>
 
-          <div className="w-10" />
+          {/* Book name + subtitle */}
+          <button onClick={() => setShowPicker(true)} className="flex flex-col items-start active:opacity-70 transition-opacity">
+            <h2 className="text-gold text-base font-bold tracking-wider leading-tight" style={{ fontFamily: 'Cinzel, serif' }}>
+              {bookData?.name || book}
+            </h2>
+            <span className="text-parchment/40 text-xs mt-0.5">
+              Toque para navegar
+            </span>
+          </button>
         </div>
         <div className="h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
       </div>
@@ -137,7 +141,7 @@ export default function ChapterPage({ params }: Props) {
           bookName={bookData.name}
           totalChapters={bookData.chapters}
           currentChapter={chapterNum}
-          totalVerses={data.verses.length}
+          currentVerses={data.verses.length}
           onClose={() => setShowPicker(false)}
         />
       )}
