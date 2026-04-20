@@ -1,10 +1,11 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, List, Loader } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Grid3x3, Loader } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import VerseCard from '@/components/VerseCard'
 import RevelationMode from '@/components/RevelationMode'
+import ChapterPicker from '@/components/ChapterPicker'
 import { fetchChapter, BibleChapter } from '@/lib/bible-api'
 import { getBookById } from '@/data/bible-structure'
 
@@ -20,6 +21,7 @@ export default function ChapterPage({ params }: Props) {
   const [data, setData] = useState<BibleChapter | null>(null)
   const [loading, setLoading] = useState(true)
   const [revelation, setRevelation] = useState<{ verse: number; text: string } | null>(null)
+  const [showPicker, setShowPicker] = useState(false)
   const [fontSize, setFontSize] = useState(17)
 
   useEffect(() => {
@@ -39,20 +41,30 @@ export default function ChapterPage({ params }: Props) {
           <Link href="/bible" className="p-2 rounded-lg hover:bg-gold/10 transition-colors">
             <ChevronLeft size={20} className="text-gold" />
           </Link>
-          <div className="text-center">
+
+          {/* Tapping center opens chapter picker */}
+          <button
+            onClick={() => setShowPicker(true)}
+            className="flex flex-col items-center active:opacity-70 transition-opacity"
+          >
             <h2 className="text-gold text-sm font-bold tracking-wider" style={{ fontFamily: 'Cinzel, serif' }}>
               {bookData?.name || book}
             </h2>
-            <p className="text-parchment/40 text-xs">Capítulo {chapterNum}</p>
-          </div>
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className="text-parchment/40 text-xs">Capítulo {chapterNum}</span>
+              <Grid3x3 size={10} className="text-gold/40" />
+            </div>
+          </button>
+
+          {/* Font size toggle */}
           <button
             onClick={() => setFontSize(s => s === 17 ? 20 : s === 20 ? 14 : 17)}
-            className="p-2 rounded-lg hover:bg-gold/10 transition-colors"
+            className="p-2 rounded-lg hover:bg-gold/10 transition-colors flex flex-col items-center"
           >
-            <List size={18} className="text-gold/60" />
+            <span className="text-gold/60 font-bold leading-none" style={{ fontSize: 14, fontFamily: 'Cinzel, serif' }}>A</span>
+            <span className="text-gold/30 text-[8px]">{fontSize}px</span>
           </button>
         </div>
-        {/* Gold line */}
         <div className="h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
       </div>
 
@@ -104,7 +116,7 @@ export default function ChapterPage({ params }: Props) {
 
       {/* Chapter Navigation */}
       <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 pointer-events-none">
-        <div className="flex justify-between pointer-events-auto">
+        <div className="flex justify-between items-center pointer-events-auto">
           {prevChapter ? (
             <Link
               href={`/bible/${book}/${prevChapter}`}
@@ -114,6 +126,17 @@ export default function ChapterPage({ params }: Props) {
               <ChevronLeft size={14} /> Cap. {prevChapter}
             </Link>
           ) : <div />}
+
+          {/* Center: quick chapter picker button */}
+          <button
+            onClick={() => setShowPicker(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gold/15 border border-gold/30 text-gold text-xs backdrop-blur"
+            style={{ fontFamily: 'Cinzel, serif' }}
+          >
+            <Grid3x3 size={12} />
+            {bookData?.chapters} cap.
+          </button>
+
           {nextChapter ? (
             <Link
               href={`/bible/${book}/${nextChapter}`}
@@ -125,6 +148,17 @@ export default function ChapterPage({ params }: Props) {
           ) : <div />}
         </div>
       </div>
+
+      {/* Chapter Picker Modal */}
+      {showPicker && bookData && (
+        <ChapterPicker
+          book={book}
+          bookName={bookData.name}
+          totalChapters={bookData.chapters}
+          currentChapter={chapterNum}
+          onClose={() => setShowPicker(false)}
+        />
+      )}
 
       {/* Revelation Mode */}
       {revelation && (
