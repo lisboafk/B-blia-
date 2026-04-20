@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, List, Loader } from 'lucide-react'
 import Navigation from '@/components/Navigation'
@@ -9,11 +9,11 @@ import { fetchChapter, BibleChapter } from '@/lib/bible-api'
 import { getBookById } from '@/data/bible-structure'
 
 interface Props {
-  params: Promise<{ book: string; chapter: string }>
+  params: { book: string; chapter: string }
 }
 
 export default function ChapterPage({ params }: Props) {
-  const { book, chapter } = use(params)
+  const { book, chapter } = params
   const chapterNum = parseInt(chapter, 10)
   const bookData = getBookById(book)
 
