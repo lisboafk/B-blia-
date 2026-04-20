@@ -1,10 +1,11 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { User, BookOpen, Heart, Star, ChevronRight, Flame } from 'lucide-react'
+import { User, BookOpen, Heart, Star, ChevronRight, Flame, Sun, Moon } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import GoldDivider from '@/components/GoldDivider'
 import { DEVOTIONALS } from '@/data/daily-devotionals'
+import { useTheme } from '@/components/ThemeProvider'
 
 const SOLAS = [
   { label: 'Sola Scriptura', desc: 'Somente a Escritura' },
@@ -18,6 +19,7 @@ export default function ProfilePage() {
   const [favCount, setFavCount] = useState(0)
   const [prayer, setPrayer] = useState('')
   const todayDev = DEVOTIONALS[new Date().getDay()]
+  const { theme, toggle } = useTheme()
 
   useEffect(() => {
     const favs = JSON.parse(localStorage.getItem('favorites') || '[]')
@@ -40,6 +42,16 @@ export default function ProfilePage() {
         </div>
         <h1 className="title-cinzel text-gold text-lg tracking-wider">MEU PERFIL</h1>
         <p className="text-parchment/40 text-xs italic mt-1">Discípulo da Palavra</p>
+
+        {/* Theme toggle */}
+        <button onClick={toggle}
+          className="mt-3 flex items-center gap-2 mx-auto px-4 py-2 rounded-xl border border-gold/25 bg-gold/8 text-parchment/70 text-xs active:scale-95 transition-transform"
+          style={{ fontFamily: 'Cinzel, serif' }}>
+          {theme === 'dark'
+            ? <><Sun size={13} className="text-gold" /> Modo Pergaminho</>
+            : <><Moon size={13} className="text-gold" /> Modo Escuro</>
+          }
+        </button>
       </div>
 
       <div className="px-4 space-y-4">

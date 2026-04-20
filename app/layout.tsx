@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import PwaRegister from '@/components/PwaRegister'
+import { ThemeProvider } from '@/components/ThemeProvider'
 
 export const metadata: Metadata = {
   title: 'Bíblia Sagrada Reformada',
@@ -43,10 +44,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-title" content="Bíblia Reformada" />
       </head>
       <body className="bg-obsidian text-parchment antialiased">
-        <PwaRegister />
-        <div className="relative min-h-screen">
-          {children}
-        </div>
+        <ThemeProvider>
+          <PwaRegister />
+          <div className="relative min-h-screen">
+            {children}
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   )

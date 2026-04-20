@@ -8,15 +8,15 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        parchment: '#e8d5a3',
+        parchment: 'rgb(var(--parchment-rgb) / <alpha-value>)',
         'parchment-dark': '#c4a96b',
         gold: '#c9a84c',
         'gold-light': '#f0c040',
         'gold-dark': '#8b6914',
         fire: '#ff6b35',
         ember: '#ff4500',
-        obsidian: '#0a0807',
-        'obsidian-light': '#140f0a',
+        obsidian: 'rgb(var(--obsidian-rgb) / <alpha-value>)',
+        'obsidian-light': 'rgb(var(--obsidian-light-rgb) / <alpha-value>)',
         'dark-wood': '#1a1208',
         'scroll-bg': '#0f0b08',
         'verse-hover': '#1c1409',

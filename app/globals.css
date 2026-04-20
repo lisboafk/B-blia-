@@ -14,7 +14,40 @@
   --obsidian: #0a0807;
   --obsidian-light: #140f0a;
   --scroll-bg: #0f0b08;
+  /* RGB triplets for Tailwind opacity modifiers */
+  --parchment-rgb: 232 213 163;
+  --obsidian-rgb: 10 8 7;
+  --obsidian-light-rgb: 20 15 10;
 }
+
+/* ── Light (Pergaminho) theme ── */
+[data-theme="light"] {
+  --parchment-rgb: 44 21 16;
+  --obsidian-rgb: 245 235 215;
+  --obsidian-light-rgb: 235 220 195;
+  --obsidian: #f5ebd7;
+  --obsidian-light: #ebdcc3;
+  --parchment: #2c1510;
+  --scroll-bg: #ede0c5;
+}
+
+[data-theme="light"] body {
+  background-color: #f5ebd7;
+  color: #2c1510;
+}
+
+[data-theme="light"] .parchment-card {
+  background: linear-gradient(135deg, #ece0c5 0%, #e3d4b0 100%);
+  border-color: rgba(139,105,20,0.30);
+}
+
+[data-theme="light"] .verse-text { color: #2c1510; }
+[data-theme="light"] ::-webkit-scrollbar-track { background: #f5ebd7; }
+
+[data-theme="light"] .verse-highlight-gold { background: rgba(201,168,76,0.20); }
+[data-theme="light"] .verse-highlight-fire  { background: rgba(255,107,53,0.18); }
+[data-theme="light"] .verse-highlight-blue  { background: rgba(80,120,220,0.15); }
+[data-theme="light"] .verse-highlight-green { background: rgba(60,160,60,0.15); }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
