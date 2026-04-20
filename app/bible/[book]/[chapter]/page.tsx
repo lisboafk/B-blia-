@@ -140,20 +140,29 @@ export default function ChapterPage({ params }: Props) {
       </div>
 
       {/* Book opening animation + chapter number */}
-      <div className={`text-center py-6 transition-all duration-700 ${revealed ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
-        <div className="relative inline-block">
-          <div className="absolute inset-0 blur-xl bg-gold/10 rounded-full scale-150" />
-          <span className="relative text-[80px] font-bold leading-none" style={{
-            fontFamily: 'Cinzel, serif',
-            background: 'linear-gradient(180deg, rgba(201,168,76,0.18) 0%, rgba(201,168,76,0.03) 100%)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          }}>
-            {chapterNum}
-          </span>
+      {!loading && (
+        <div className="text-center py-6">
+          <div className="relative inline-block">
+            <div className="absolute inset-0 blur-xl bg-gold/10 rounded-full scale-150" />
+            <span
+              key={`ch-${chapterNum}`}
+              className="relative chapter-glow-in text-[80px] font-bold leading-none"
+              style={{
+                fontFamily: 'Cinzel, serif',
+                display: 'inline-block',
+                background: 'linear-gradient(180deg, rgba(201,168,76,0.18) 0%, rgba(201,168,76,0.03) 100%)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              }}
+            >
+              {chapterNum}
+            </span>
+          </div>
+          <div
+            key={`line-${chapterNum}`}
+            className="h-px mx-auto bg-gradient-to-r from-transparent via-gold/50 to-transparent unfurl-line"
+          />
         </div>
-        {/* Scroll unfurl line */}
-        <div className={`h-px mx-auto bg-gradient-to-r from-transparent via-gold/50 to-transparent transition-all duration-1000 ${revealed ? 'w-48' : 'w-0'}`} />
-      </div>
+      )}
 
       {/* Loading */}
       {loading && (
@@ -171,13 +180,9 @@ export default function ChapterPage({ params }: Props) {
         <div className="pb-4">
           {data.verses.map((v, idx) => (
             <div
-              key={v.verse}
-              className="transition-all duration-500"
-              style={{
-                opacity: revealed ? 1 : 0,
-                transform: revealed ? 'translateY(0)' : 'translateY(12px)',
-                transitionDelay: `${Math.min(idx * 30, 600)}ms`,
-              }}
+              key={`${chapterNum}-${v.verse}`}
+              className="verse-reveal"
+              style={{ animationDelay: `${Math.min(idx * 40, 800)}ms` }}
             >
               <VerseCard
                 book={book}

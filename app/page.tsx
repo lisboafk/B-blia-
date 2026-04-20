@@ -16,13 +16,7 @@ export default function Home() {
   const todayVerse = getTodayVerse()
   const devotional = getTodayDevotional()
 
-  useEffect(() => {
-    const seen = sessionStorage.getItem('splash-shown')
-    if (seen) { setShowSplash(false); setVisible(true) }
-  }, [])
-
   const handleSplashComplete = () => {
-    sessionStorage.setItem('splash-shown', '1')
     setShowSplash(false)
     setTimeout(() => setVisible(true), 100)
   }
