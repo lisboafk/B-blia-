@@ -40,6 +40,7 @@ export default function VerseCard({ book, chapter, verse, text, fontSize = 17, o
 
   return (
     <div
+      id={`verse-${verse}`}
       className={`group relative px-4 py-2.5 cursor-pointer transition-all duration-200 rounded-lg mx-2 my-0.5 ${
         highlight ? COLORS.find(c => c.key === highlight)?.cls : 'hover:bg-white/5'
       } ${hasCommentary ? 'border-l-2 border-gold/0 hover:border-gold/30' : ''}`}
