@@ -55,7 +55,8 @@ export default function NavigationPicker({ book, bookName, totalChapters, curren
         document.getElementById(`verse-${v}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }, 100)
     } else {
-      router.push(`/bible/${book}/${selectedChapter}#verse-${v}`)
+      sessionStorage.setItem('scrollToVerse', String(v))
+      router.push(`/bible/${book}/${selectedChapter}`)
     }
   }
 

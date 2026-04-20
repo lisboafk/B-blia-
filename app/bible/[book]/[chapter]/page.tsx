@@ -26,7 +26,17 @@ export default function ChapterPage({ params }: Props) {
   useEffect(() => {
     setLoading(true)
     setData(null)
-    fetchChapter(book, chapterNum).then(d => { setData(d); setLoading(false) })
+    fetchChapter(book, chapterNum).then(d => {
+      setData(d)
+      setLoading(false)
+      const target = sessionStorage.getItem('scrollToVerse')
+      if (target) {
+        sessionStorage.removeItem('scrollToVerse')
+        setTimeout(() => {
+          document.getElementById(`verse-${target}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 400)
+      }
+    })
   }, [book, chapterNum])
 
   const prevChapter = chapterNum > 1 ? chapterNum - 1 : null
