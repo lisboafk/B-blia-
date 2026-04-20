@@ -1,12 +1,11 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Grid3x3, Loader, AlignJustify } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LayoutGrid, Loader } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import VerseCard from '@/components/VerseCard'
 import RevelationMode from '@/components/RevelationMode'
-import ChapterPicker from '@/components/ChapterPicker'
-import VersePicker from '@/components/VersePicker'
+import NavigationPicker from '@/components/NavigationPicker'
 import { fetchChapter, BibleChapter } from '@/lib/bible-api'
 import { getBookById } from '@/data/bible-structure'
 
@@ -23,8 +22,6 @@ export default function ChapterPage({ params }: Props) {
   const [loading, setLoading] = useState(true)
   const [revelation, setRevelation] = useState<{ verse: number; text: string } | null>(null)
   const [showPicker, setShowPicker] = useState(false)
-  const [showVersePicker, setShowVersePicker] = useState(false)
-  const fontSize = 22
 
   useEffect(() => {
     setLoading(true)
@@ -44,7 +41,7 @@ export default function ChapterPage({ params }: Props) {
             <ChevronLeft size={20} className="text-gold" />
           </Link>
 
-          {/* Tapping center opens chapter picker */}
+          {/* Center: tapping opens unified picker */}
           <button
             onClick={() => setShowPicker(true)}
             className="flex flex-col items-center active:opacity-70 transition-opacity"
@@ -54,18 +51,11 @@ export default function ChapterPage({ params }: Props) {
             </h2>
             <div className="flex items-center gap-1 mt-0.5">
               <span className="text-parchment/40 text-xs">Capítulo {chapterNum}</span>
-              <Grid3x3 size={10} className="text-gold/40" />
+              <LayoutGrid size={10} className="text-gold/40" />
             </div>
           </button>
 
-          {/* Verse picker button */}
-          <button
-            onClick={() => setShowVersePicker(true)}
-            className="p-2 rounded-lg hover:bg-gold/10 transition-colors flex flex-col items-center"
-          >
-            <AlignJustify size={18} className="text-gold/60" />
-            <span className="text-gold/30 text-[8px]" style={{ fontFamily: 'Cinzel, serif' }}>vers.</span>
-          </button>
+          <div className="w-10" />
         </div>
         <div className="h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
       </div>
@@ -105,7 +95,7 @@ export default function ChapterPage({ params }: Props) {
               chapter={chapterNum}
               verse={v.verse}
               text={v.text}
-              fontSize={fontSize}
+              fontSize={22}
               onReveal={(verse, text) => setRevelation({ verse, text })}
             />
           ))}
@@ -116,45 +106,22 @@ export default function ChapterPage({ params }: Props) {
         </div>
       )}
 
-      {/* Chapter Navigation */}
+      {/* Chapter Navigation — clean prev/next only */}
       <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 pointer-events-none">
-        <div className="flex justify-between items-center pointer-events-auto">
+        <div className="flex justify-between pointer-events-auto">
           {prevChapter ? (
             <Link
               href={`/bible/${book}/${prevChapter}`}
-              className="flex items-center gap-1 px-4 py-2 rounded-xl bg-obsidian/90 border border-gold/20 text-gold text-xs backdrop-blur"
+              className="flex items-center gap-1 px-4 py-2.5 rounded-xl bg-obsidian/90 border border-gold/20 text-gold text-xs backdrop-blur"
               style={{ fontFamily: 'Cinzel, serif' }}
             >
               <ChevronLeft size={14} /> Cap. {prevChapter}
             </Link>
           ) : <div />}
-
-          {/* Center: chapter and verse picker buttons */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowPicker(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gold/15 border border-gold/30 text-gold text-xs backdrop-blur"
-              style={{ fontFamily: 'Cinzel, serif' }}
-            >
-              <Grid3x3 size={12} />
-              {bookData?.chapters} cap.
-            </button>
-            {data && (
-              <button
-                onClick={() => setShowVersePicker(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-fire/15 border border-fire/30 text-fire text-xs backdrop-blur"
-                style={{ fontFamily: 'Cinzel, serif' }}
-              >
-                <AlignJustify size={12} />
-                {data.verses.length} vs.
-              </button>
-            )}
-          </div>
-
           {nextChapter ? (
             <Link
               href={`/bible/${book}/${nextChapter}`}
-              className="flex items-center gap-1 px-4 py-2 rounded-xl bg-obsidian/90 border border-gold/20 text-gold text-xs backdrop-blur"
+              className="flex items-center gap-1 px-4 py-2.5 rounded-xl bg-obsidian/90 border border-gold/20 text-gold text-xs backdrop-blur"
               style={{ fontFamily: 'Cinzel, serif' }}
             >
               Cap. {nextChapter} <ChevronRight size={14} />
@@ -163,23 +130,14 @@ export default function ChapterPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Verse Picker Modal */}
-      {showVersePicker && data && bookData && (
-        <VersePicker
-          bookName={bookData.name}
-          chapter={chapterNum}
-          totalVerses={data.verses.length}
-          onClose={() => setShowVersePicker(false)}
-        />
-      )}
-
-      {/* Chapter Picker Modal */}
-      {showPicker && bookData && (
-        <ChapterPicker
+      {/* Unified Navigation Picker */}
+      {showPicker && bookData && data && (
+        <NavigationPicker
           book={book}
           bookName={bookData.name}
           totalChapters={bookData.chapters}
           currentChapter={chapterNum}
+          totalVerses={data.verses.length}
           onClose={() => setShowPicker(false)}
         />
       )}
