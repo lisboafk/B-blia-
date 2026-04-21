@@ -1,12 +1,11 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Search, BookOpen, ChevronRight, Flame, CalendarDays, CheckCircle2 } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import GoldDivider from '@/components/GoldDivider'
 import { THEOLOGICAL_THEMES } from '@/data/reformed-commentary'
 import { DEVOTIONALS } from '@/data/daily-devotionals'
-import { HIGHLIGHTED_PASSAGES } from '@/data/key-verses'
 
 const THEME_VERSES: Record<string, { ref: string; book: string; ch: number }[]> = {
   'Soberania de Deus': [{ ref: 'Romanos 9:15-16', book: 'romanos', ch: 9 }, { ref: 'Efésios 1:11', book: 'efesios', ch: 1 }, { ref: 'Salmos 115:3', book: 'salmos', ch: 115 }],
@@ -98,6 +97,10 @@ const NT_PLAN = [
   { id: 'apocalipse', name: 'Apocalipse', chapters: 22 },
 ]
 
+const BOOK_NAME: Record<string, string> = Object.fromEntries(
+  [...OT_PLAN, ...NT_PLAN].map(b => [b.id, b.name])
+)
+
 function getDayOfYear(): number {
   const now = new Date()
   return Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
@@ -113,29 +116,33 @@ function getChapterAt(plan: { id: string; name: string; chapters: number }[], in
   return { id: plan[0].id, name: plan[0].name, chapter: 1 }
 }
 
+function normalizeText(s: string) {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+}
+
+// Module-level cache — persists across re-renders
+let _verseIndex: [string, number, number, string][] | null = null
+
+type VerseResult = { id: string; ch: number; v: number; text: string }
+
 export default function StudyPage() {
   const [search, setSearch] = useState('')
   const [activeTheme, setActiveTheme] = useState<string | null>(null)
-  const [tab, setTab] = useState<'temas' | 'devocionais' | 'destaque' | 'plano'>('temas')
+  const [tab, setTab] = useState<'temas' | 'devocionais' | 'plano' | 'busca'>('temas')
   const [readChapters, setReadChapters] = useState<Set<string>>(new Set())
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [results, setResults] = useState<VerseResult[]>([])
+  const [indexReady, setIndexReady] = useState(_verseIndex !== null)
+  const [indexLoading, setIndexLoading] = useState(false)
+  const [indexErr, setIndexErr] = useState(false)
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const day = getDayOfYear()
   const ot1 = getChapterAt(OT_PLAN, day * 2)
   const ot2 = getChapterAt(OT_PLAN, day * 2 + 1)
   const nt1 = getChapterAt(NT_PLAN, day)
-  const progressPct = Math.round((day / 365) * 100)
-
-  useEffect(() => {
-    const saved = localStorage.getItem('read-plan')
-    if (saved) setReadChapters(new Set(JSON.parse(saved)))
-  }, [])
-
-  const markRead = (key: string) => {
-    const next = new Set(Array.from(readChapters))
-    next.add(key)
-    setReadChapters(next)
-    localStorage.setItem('read-plan', JSON.stringify(Array.from(next)))
-  }
 
   const readings = [
     { ...ot1, label: 'AT' },
@@ -143,6 +150,46 @@ export default function StudyPage() {
     { ...nt1, label: 'NT' },
   ]
   const doneToday = readings.filter(r => readChapters.has(`${r.id}-${r.chapter}`)).length
+  const totalRead = readChapters.size
+  const readPct = totalRead === 0 ? 0 : Math.min(100, Math.round((totalRead / (day * 3)) * 100))
+
+  useEffect(() => {
+    const saved = localStorage.getItem('read-plan')
+    if (saved) setReadChapters(new Set(JSON.parse(saved)))
+  }, [])
+
+  useEffect(() => {
+    if (tab !== 'busca' || _verseIndex !== null || indexLoading) return
+    setIndexLoading(true)
+    fetch('/bible/all-verses.json')
+      .then(r => { if (!r.ok) throw new Error('not found'); return r.json() })
+      .then(data => { _verseIndex = data; setIndexReady(true) })
+      .catch(() => setIndexErr(true))
+      .finally(() => setIndexLoading(false))
+  }, [tab])
+
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+    if (searchQuery.length < 3 || !_verseIndex) { setResults([]); return }
+    searchTimer.current = setTimeout(() => {
+      const q = normalizeText(searchQuery)
+      const found: VerseResult[] = []
+      for (const [id, ch, v, text] of _verseIndex!) {
+        if (normalizeText(text).includes(q)) {
+          found.push({ id, ch, v, text })
+          if (found.length >= 30) break
+        }
+      }
+      setResults(found)
+    }, 200)
+  }, [searchQuery, indexReady])
+
+  const markRead = (key: string) => {
+    const next = new Set(Array.from(readChapters))
+    next.add(key)
+    setReadChapters(next)
+    localStorage.setItem('read-plan', JSON.stringify(Array.from(next)))
+  }
 
   const filteredThemes = THEOLOGICAL_THEMES.filter(t =>
     t.toLowerCase().includes(search.toLowerCase())
@@ -158,12 +205,12 @@ export default function StudyPage() {
       {/* Tabs */}
       <div className="px-4 mb-4">
         <div className="flex parchment-card rounded-xl p-1 gap-1">
-          {(['temas', 'devocionais', 'destaque', 'plano'] as const).map(t => (
+          {(['temas', 'devocionais', 'plano', 'busca'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
               className={`flex-1 py-1.5 rounded-lg text-[9px] tracking-widest uppercase transition-all ${
                 tab === t ? 'bg-gold/20 text-gold-light' : 'text-parchment/50'
               }`} style={{ fontFamily: 'Cinzel, serif' }}>
-              {t === 'temas' ? 'Temas' : t === 'devocionais' ? 'Dev.' : t === 'destaque' ? 'Top' : 'Plano'}
+              {t === 'temas' ? 'Temas' : t === 'devocionais' ? 'Dev.' : t === 'plano' ? 'Plano' : 'Busca'}
             </button>
           ))}
         </div>
@@ -235,22 +282,6 @@ export default function StudyPage() {
         </div>
       )}
 
-      {tab === 'destaque' && (
-        <div className="px-4 space-y-2">
-          <GoldDivider label="Passagens Essenciais" />
-          {HIGHLIGHTED_PASSAGES.map(p => (
-            <Link key={p.reference} href={`/bible/${p.book}/${p.chapter}`}
-              className="flex items-center justify-between parchment-card p-3 rounded-xl active:scale-[0.98] transition-transform">
-              <div>
-                <p className="text-parchment text-sm" style={{ fontFamily: 'Cinzel, serif' }}>{p.label}</p>
-                <p className="text-parchment/40 text-xs">{p.reference}</p>
-              </div>
-              <ChevronRight size={16} className="text-gold/40" />
-            </Link>
-          ))}
-        </div>
-      )}
-
       {tab === 'plano' && (
         <div className="px-4 space-y-4">
           <div className="parchment-card rounded-2xl p-4">
@@ -259,17 +290,18 @@ export default function StudyPage() {
               <span className="text-gold text-xs tracking-widest uppercase" style={{ fontFamily: 'Cinzel, serif' }}>
                 Bíblia em 1 Ano
               </span>
-              <span className="ml-auto text-parchment/30 text-xs">Dia {day}</span>
+              <span className="ml-auto text-parchment/30 text-xs">Dia {day} de 365</span>
             </div>
 
-            {/* Progress bar */}
+            {/* Progress bar — shows reading progress, not calendar */}
             <div className="mb-5">
               <div className="flex justify-between text-xs text-parchment/40 mb-1.5">
-                <span>Progresso do ano</span>
-                <span>{progressPct}%</span>
+                <span>{totalRead} capítulos lidos</span>
+                <span>{readPct}% em dia</span>
               </div>
               <div className="h-1.5 rounded-full bg-obsidian/50 overflow-hidden">
-                <div className="h-full rounded-full bg-gradient-to-r from-gold/70 to-gold/40 transition-all" style={{ width: `${progressPct}%` }} />
+                <div className="h-full rounded-full bg-gradient-to-r from-gold/70 to-gold/40 transition-all duration-500"
+                  style={{ width: `${readPct}%` }} />
               </div>
             </div>
 
@@ -299,10 +331,70 @@ export default function StudyPage() {
               })}
             </div>
           </div>
+          <p className="text-parchment/25 text-xs text-center italic">O plano reinicia automaticamente a cada ano</p>
+        </div>
+      )}
 
-          <p className="text-parchment/25 text-xs text-center italic">
-            O plano reinicia automaticamente a cada ano
-          </p>
+      {tab === 'busca' && (
+        <div className="px-4">
+          <div className="flex items-center gap-2 parchment-card rounded-xl px-3 py-2.5 mb-4">
+            <Search size={14} className="text-gold/60" />
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Buscar palavra ou frase..."
+              className="bg-transparent flex-1 text-parchment text-sm outline-none placeholder:text-parchment/30"
+              autoFocus
+            />
+            {searchQuery.length > 0 && (
+              <button onClick={() => { setSearchQuery(''); setResults([]) }}
+                className="text-parchment/30 text-xs px-1">✕</button>
+            )}
+          </div>
+
+          {indexLoading && (
+            <p className="text-center text-parchment/30 text-sm mt-8">Carregando índice bíblico...</p>
+          )}
+
+          {indexErr && (
+            <p className="text-center text-parchment/30 text-sm mt-8">
+              Índice indisponível. Faça o deploy novamente para gerar o índice.
+            </p>
+          )}
+
+          {!indexLoading && !indexErr && searchQuery.length < 3 && (
+            <p className="text-center text-parchment/30 text-sm mt-8 italic">
+              Digite ao menos 3 letras para buscar em toda a Bíblia
+            </p>
+          )}
+
+          {results.length > 0 && (
+            <>
+              <p className="text-parchment/30 text-xs mb-3" style={{ fontFamily: 'Cinzel, serif' }}>
+                {results.length} resultado{results.length !== 1 ? 's' : ''}{results.length === 30 ? ' (primeiros 30)' : ''}
+              </p>
+              <div className="space-y-2">
+                {results.map(r => (
+                  <Link key={`${r.id}-${r.ch}-${r.v}`} href={`/bible/${r.id}/${r.ch}`}
+                    className="block parchment-card p-3 rounded-xl active:scale-[0.98] transition-transform">
+                    <div className="flex items-center gap-2 mb-1">
+                      <BookOpen size={12} className="text-gold/60 shrink-0" />
+                      <span className="text-gold text-xs" style={{ fontFamily: 'Cinzel, serif' }}>
+                        {BOOK_NAME[r.id] || r.id} {r.ch}:{r.v}
+                      </span>
+                    </div>
+                    <p className="text-parchment/70 text-sm leading-relaxed line-clamp-2">{r.text}</p>
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
+
+          {!indexLoading && indexReady && searchQuery.length >= 3 && results.length === 0 && (
+            <p className="text-center text-parchment/30 text-sm mt-8 italic">
+              Nenhum versículo encontrado para "{searchQuery}"
+            </p>
+          )}
         </div>
       )}
 

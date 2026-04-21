@@ -53,17 +53,24 @@ async function tryBatchSource(url) {
   if (!Array.isArray(data) || data.length < 66) return false
   mkdirSync(OUT_DIR, { recursive: true })
   let saved = 0
+  const allVerses = []
   for (let i = 0; i < 66; i++) {
     const book = data[i]
     if (!book?.chapters) continue
+    const bookId = BOOK_IDS[i]
     const chapters = {}
     book.chapters.forEach((verses, ci) => {
-      chapters[String(ci + 1)] = verses.map((t, vi) => ({ v: vi + 1, t: String(t).trim() }))
+      chapters[String(ci + 1)] = verses.map((t, vi) => {
+        const text = String(t).trim()
+        allVerses.push([bookId, ci + 1, vi + 1, text])
+        return { v: vi + 1, t: text }
+      })
     })
-    writeFileSync(join(OUT_DIR, `${BOOK_IDS[i]}.json`), JSON.stringify({ chapters }))
+    writeFileSync(join(OUT_DIR, `${bookId}.json`), JSON.stringify({ chapters }))
     saved++
   }
-  console.log(`  ✅ ${saved}/66 livros`)
+  writeFileSync(join(OUT_DIR, 'all-verses.json'), JSON.stringify(allVerses))
+  console.log(`  ✅ ${saved}/66 livros + índice de busca`)
   return saved >= 60
 }
 
