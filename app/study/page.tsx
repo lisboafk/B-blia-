@@ -1,7 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Search, BookOpen, ChevronRight, Flame } from 'lucide-react'
+import { Search, BookOpen, ChevronRight, Flame, CalendarDays, CheckCircle2 } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import GoldDivider from '@/components/GoldDivider'
 import { THEOLOGICAL_THEMES } from '@/data/reformed-commentary'
@@ -26,10 +26,123 @@ const THEME_VERSES: Record<string, { ref: string; book: string; ch: number }[]> 
   'Fé': [{ ref: 'Hebreus 11:1', book: 'hebreus', ch: 11 }, { ref: 'Romanos 10:17', book: 'romanos', ch: 10 }, { ref: 'Efésios 2:8', book: 'efesios', ch: 2 }],
 }
 
+const OT_PLAN = [
+  { id: 'genesis', name: 'Gênesis', chapters: 50 },
+  { id: 'exodo', name: 'Êxodo', chapters: 40 },
+  { id: 'levitico', name: 'Levítico', chapters: 27 },
+  { id: 'numeros', name: 'Números', chapters: 36 },
+  { id: 'deuteronomio', name: 'Deuteronômio', chapters: 34 },
+  { id: 'josue', name: 'Josué', chapters: 24 },
+  { id: 'juizes', name: 'Juízes', chapters: 21 },
+  { id: 'rute', name: 'Rute', chapters: 4 },
+  { id: '1samuel', name: '1 Samuel', chapters: 31 },
+  { id: '2samuel', name: '2 Samuel', chapters: 24 },
+  { id: '1reis', name: '1 Reis', chapters: 22 },
+  { id: '2reis', name: '2 Reis', chapters: 25 },
+  { id: '1cronicas', name: '1 Crônicas', chapters: 29 },
+  { id: '2cronicas', name: '2 Crônicas', chapters: 36 },
+  { id: 'esdras', name: 'Esdras', chapters: 10 },
+  { id: 'neemias', name: 'Neemias', chapters: 13 },
+  { id: 'ester', name: 'Ester', chapters: 10 },
+  { id: 'jo', name: 'Jó', chapters: 42 },
+  { id: 'salmos', name: 'Salmos', chapters: 150 },
+  { id: 'proverbios', name: 'Provérbios', chapters: 31 },
+  { id: 'eclesiastes', name: 'Eclesiastes', chapters: 12 },
+  { id: 'cantares', name: 'Cânticos', chapters: 8 },
+  { id: 'isaias', name: 'Isaías', chapters: 66 },
+  { id: 'jeremias', name: 'Jeremias', chapters: 52 },
+  { id: 'lamentacoes', name: 'Lamentações', chapters: 5 },
+  { id: 'ezequiel', name: 'Ezequiel', chapters: 48 },
+  { id: 'daniel', name: 'Daniel', chapters: 12 },
+  { id: 'oseias', name: 'Oseias', chapters: 14 },
+  { id: 'joel', name: 'Joel', chapters: 3 },
+  { id: 'amos', name: 'Amós', chapters: 9 },
+  { id: 'abdias', name: 'Abdias', chapters: 1 },
+  { id: 'jonas', name: 'Jonas', chapters: 4 },
+  { id: 'miqueias', name: 'Miquéias', chapters: 7 },
+  { id: 'naum', name: 'Naum', chapters: 3 },
+  { id: 'habacuque', name: 'Habacuque', chapters: 3 },
+  { id: 'sofonias', name: 'Sofonias', chapters: 3 },
+  { id: 'ageu', name: 'Ageu', chapters: 2 },
+  { id: 'zacarias', name: 'Zacarias', chapters: 14 },
+  { id: 'malaquias', name: 'Malaquias', chapters: 4 },
+]
+
+const NT_PLAN = [
+  { id: 'mateus', name: 'Mateus', chapters: 28 },
+  { id: 'marcos', name: 'Marcos', chapters: 16 },
+  { id: 'lucas', name: 'Lucas', chapters: 24 },
+  { id: 'joao', name: 'João', chapters: 21 },
+  { id: 'atos', name: 'Atos', chapters: 28 },
+  { id: 'romanos', name: 'Romanos', chapters: 16 },
+  { id: '1corintios', name: '1 Coríntios', chapters: 16 },
+  { id: '2corintios', name: '2 Coríntios', chapters: 13 },
+  { id: 'galatas', name: 'Gálatas', chapters: 6 },
+  { id: 'efesios', name: 'Efésios', chapters: 6 },
+  { id: 'filipenses', name: 'Filipenses', chapters: 4 },
+  { id: 'colossenses', name: 'Colossenses', chapters: 4 },
+  { id: '1tessalonicenses', name: '1 Tessalonicenses', chapters: 5 },
+  { id: '2tessalonicenses', name: '2 Tessalonicenses', chapters: 3 },
+  { id: '1timoteo', name: '1 Timóteo', chapters: 6 },
+  { id: '2timoteo', name: '2 Timóteo', chapters: 4 },
+  { id: 'tito', name: 'Tito', chapters: 3 },
+  { id: 'filemom', name: 'Filemom', chapters: 1 },
+  { id: 'hebreus', name: 'Hebreus', chapters: 13 },
+  { id: 'tiago', name: 'Tiago', chapters: 5 },
+  { id: '1pedro', name: '1 Pedro', chapters: 5 },
+  { id: '2pedro', name: '2 Pedro', chapters: 3 },
+  { id: '1joao', name: '1 João', chapters: 5 },
+  { id: '2joao', name: '2 João', chapters: 1 },
+  { id: '3joao', name: '3 João', chapters: 1 },
+  { id: 'judas', name: 'Judas', chapters: 1 },
+  { id: 'apocalipse', name: 'Apocalipse', chapters: 22 },
+]
+
+function getDayOfYear(): number {
+  const now = new Date()
+  return Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
+}
+
+function getChapterAt(plan: { id: string; name: string; chapters: number }[], index: number) {
+  const total = plan.reduce((s, b) => s + b.chapters, 0)
+  let i = index % total
+  for (const book of plan) {
+    if (i < book.chapters) return { id: book.id, name: book.name, chapter: i + 1 }
+    i -= book.chapters
+  }
+  return { id: plan[0].id, name: plan[0].name, chapter: 1 }
+}
+
 export default function StudyPage() {
   const [search, setSearch] = useState('')
   const [activeTheme, setActiveTheme] = useState<string | null>(null)
-  const [tab, setTab] = useState<'temas' | 'devocionais' | 'destaque'>('temas')
+  const [tab, setTab] = useState<'temas' | 'devocionais' | 'destaque' | 'plano'>('temas')
+  const [readChapters, setReadChapters] = useState<Set<string>>(new Set())
+
+  const day = getDayOfYear()
+  const ot1 = getChapterAt(OT_PLAN, day * 2)
+  const ot2 = getChapterAt(OT_PLAN, day * 2 + 1)
+  const nt1 = getChapterAt(NT_PLAN, day)
+  const progressPct = Math.round((day / 365) * 100)
+
+  useEffect(() => {
+    const saved = localStorage.getItem('read-plan')
+    if (saved) setReadChapters(new Set(JSON.parse(saved)))
+  }, [])
+
+  const markRead = (key: string) => {
+    const next = new Set(Array.from(readChapters))
+    next.add(key)
+    setReadChapters(next)
+    localStorage.setItem('read-plan', JSON.stringify(Array.from(next)))
+  }
+
+  const readings = [
+    { ...ot1, label: 'AT' },
+    { ...ot2, label: 'AT' },
+    { ...nt1, label: 'NT' },
+  ]
+  const doneToday = readings.filter(r => readChapters.has(`${r.id}-${r.chapter}`)).length
 
   const filteredThemes = THEOLOGICAL_THEMES.filter(t =>
     t.toLowerCase().includes(search.toLowerCase())
@@ -45,12 +158,12 @@ export default function StudyPage() {
       {/* Tabs */}
       <div className="px-4 mb-4">
         <div className="flex parchment-card rounded-xl p-1 gap-1">
-          {(['temas', 'devocionais', 'destaque'] as const).map(t => (
+          {(['temas', 'devocionais', 'destaque', 'plano'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
-              className={`flex-1 py-1.5 rounded-lg text-[10px] tracking-widest uppercase transition-all ${
+              className={`flex-1 py-1.5 rounded-lg text-[9px] tracking-widest uppercase transition-all ${
                 tab === t ? 'bg-gold/20 text-gold-light' : 'text-parchment/50'
               }`} style={{ fontFamily: 'Cinzel, serif' }}>
-              {t === 'temas' ? 'Temas' : t === 'devocionais' ? 'Devocional' : 'Destaque'}
+              {t === 'temas' ? 'Temas' : t === 'devocionais' ? 'Dev.' : t === 'destaque' ? 'Top' : 'Plano'}
             </button>
           ))}
         </div>
@@ -135,6 +248,61 @@ export default function StudyPage() {
               <ChevronRight size={16} className="text-gold/40" />
             </Link>
           ))}
+        </div>
+      )}
+
+      {tab === 'plano' && (
+        <div className="px-4 space-y-4">
+          <div className="parchment-card rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <CalendarDays size={14} className="text-gold" />
+              <span className="text-gold text-xs tracking-widest uppercase" style={{ fontFamily: 'Cinzel, serif' }}>
+                Bíblia em 1 Ano
+              </span>
+              <span className="ml-auto text-parchment/30 text-xs">Dia {day}</span>
+            </div>
+
+            {/* Progress bar */}
+            <div className="mb-5">
+              <div className="flex justify-between text-xs text-parchment/40 mb-1.5">
+                <span>Progresso do ano</span>
+                <span>{progressPct}%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-obsidian/50 overflow-hidden">
+                <div className="h-full rounded-full bg-gradient-to-r from-gold/70 to-gold/40 transition-all" style={{ width: `${progressPct}%` }} />
+              </div>
+            </div>
+
+            {/* Today's readings */}
+            <p className="text-parchment/40 text-[10px] tracking-widest uppercase mb-3" style={{ fontFamily: 'Cinzel, serif' }}>
+              Leitura de hoje — {doneToday}/3 concluídos
+            </p>
+            <div className="space-y-1">
+              {readings.map(r => {
+                const key = `${r.id}-${r.chapter}`
+                const done = readChapters.has(key)
+                return (
+                  <div key={key} className={`flex items-center gap-3 py-2.5 px-3 rounded-xl transition-colors ${done ? 'bg-gold/8' : 'bg-obsidian/30'}`}>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${r.label === 'NT' ? 'bg-fire/20 text-fire' : 'bg-gold/20 text-gold'}`}
+                      style={{ fontFamily: 'Cinzel, serif' }}>
+                      {r.label}
+                    </span>
+                    <Link href={`/bible/${r.id}/${r.chapter}`} className={`flex-1 text-sm ${done ? 'text-parchment/40 line-through' : 'text-parchment'}`}>
+                      {r.name} {r.chapter}
+                    </Link>
+                    <button onClick={() => markRead(key)}
+                      className={`p-1 shrink-0 transition-colors ${done ? 'text-gold' : 'text-parchment/20 active:text-gold/60'}`}>
+                      <CheckCircle2 size={18} />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <p className="text-parchment/25 text-xs text-center italic">
+            O plano reinicia automaticamente a cada ano
+          </p>
         </div>
       )}
 

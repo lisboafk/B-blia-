@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { User, BookOpen, Heart, Star, ChevronRight, Flame, Sun, Moon } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import GoldDivider from '@/components/GoldDivider'
-import { DEVOTIONALS } from '@/data/daily-devotionals'
+import { getTodayDevotional } from '@/data/daily-devotionals'
 import { useTheme } from '@/components/ThemeProvider'
 
 const SOLAS = [
@@ -18,7 +18,7 @@ const SOLAS = [
 export default function ProfilePage() {
   const [favCount, setFavCount] = useState(0)
   const [prayer, setPrayer] = useState('')
-  const todayDev = DEVOTIONALS[new Date().getDay()]
+  const todayDev = getTodayDevotional()
   const { theme, toggle } = useTheme()
 
   useEffect(() => {
