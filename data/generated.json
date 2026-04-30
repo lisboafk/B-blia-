@@ -1,6 +1,41 @@
 {
-  "devotionals": [],
-  "verses": [],
-  "morningPrayers": [],
+  "devotionals": [
+    {
+      "id": "gen-d-1777529997555",
+      "title": "Selo Eterno da Salvação",
+      "theme": "Segurança da Salvação",
+      "reference": "Efésios 1:13-14",
+      "book": "efesios",
+      "chapter": 1,
+      "verseNum": 13,
+      "verse": "Em quem também vós estais, depois que ouvistes a palavra da verdade, o evangelho da vossa salvação; e, tendo nele também crido, fostes selados com o Espírito Santo da promessa; O qual é o penhor da nossa herança, para redenção da possessão adquirida, para louvor da sua glória.",
+      "content": "A segurança da nossa salvação é uma âncora firme para a alma, não baseada em nossos méritos ou sentimentos flutuantes, mas na obra soberana e infalível de Deus. O apóstolo Paulo nos lembra que, ao crer no evangelho, fomos selados com o Espírito Santo. Este selo não é simbólico, mas uma garantia divina, a própria presença de Deus em nós, que autentica nossa filiação e assegura nossa herança eterna em Cristo Jesus.\n\nEste Espírito Santo é descrito como o \"penhor da nossa herança\". Um penhor é um pagamento inicial, uma promessa irrevogável de que o restante será entregue. Deus, em Sua gloriosa soberania, nos deu o Seu próprio Espírito como garantia de que Ele completará a obra que iniciou em nós. Nossa salvação é mantida pela onipotência de Deus, não pela nossa frágil capacidade de nos mantermos fiéis. É a fidelidade de Cristo, e não a nossa, que nos sustenta e nos leva à glória final.\n\nPara o cristão moderno, em meio às incertezas e dúvidas da vida, esta verdade é um bálsamo precioso. Nossa segurança não está em quão bem nos comportamos ou quão forte é a nossa fé a cada momento, mas na imutável promessa de Deus e no sacrifício perfeito de Cristo. Que esta profunda verdade nos leve a uma adoração mais profunda, a uma confiança inabalável e a uma vida vivida para o \"louvor da sua glória\", sabendo que Ele, que começou a boa obra em nós, há de completá-la.",
+      "prayer": "Pai celestial, agradecemos pela Rocha inabalável da nossa salvação, selada pelo Teu Espírito Santo. Que a certeza da Tua fidelidade e do sacrifício de Cristo acalme nossas dúvidas e fortaleça nossa fé. Ajuda-nos a viver para o louvor da Tua gloriosa graça. Amém.",
+      "generatedAt": "2026-04-30T06:19:57.555Z"
+    }
+  ],
+  "verses": [
+    {
+      "id": "gen-v-1777529991517",
+      "reference": "Filipenses 1:6",
+      "text": "Tendo por certo isto mesmo: que aquele que em vós começou a boa obra a aperfeiçoará até ao Dia de Jesus Cristo.",
+      "book": "filipenses",
+      "chapter": 1,
+      "verse": 6,
+      "generatedAt": "2026-04-30T06:19:51.517Z"
+    }
+  ],
+  "morningPrayers": [
+    {
+      "id": "gen-p-m-1777529993545",
+      "period": "manha",
+      "title": "Oração da Manhã",
+      "reference": "Lamentações 3:22-23",
+      "book": "lamentacoes",
+      "chapter": 3,
+      "prayer": "Pai celestial, ao despertar para este novo dia, \nrendemos graças pela Tua fidelidade que se renova a cada manhã.\nQue a Tua graça soberana nos guie em cada passo,\ne que o Espírito Santo nos capacite a viver para a Tua glória,\nconfiando plenamente em Cristo, nosso Senhor.\nAmém.",
+      "generatedAt": "2026-04-30T06:19:53.545Z"
+    }
+  ],
   "eveningPrayers": []
 }

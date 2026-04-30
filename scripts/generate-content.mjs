@@ -22,7 +22,7 @@ const PERIOD = process.env.PERIOD || (new Date().getUTCHours() < 12 ? 'manha' : 
 console.log(`🕐 Período: ${PERIOD}`)
 
 async function callGemini(prompt) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { temperature: 0.8, maxOutputTokens: 2048 }
