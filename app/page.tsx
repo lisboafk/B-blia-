@@ -279,22 +279,21 @@ export default function HojePage() {
             )}
             <div className="absolute inset-0"
               style={{ background: 'linear-gradient(180deg,rgba(0,0,0,0.25) 0%,rgba(0,0,0,0.72) 100%)' }} />
-            <div className="relative px-5 pt-6 pb-5 flex flex-col justify-center items-center" style={{ minHeight: 300 }}>
-              <p className="text-white font-bold italic text-center leading-snug mb-4"
+            <div className="relative px-5 pt-8 pb-6 flex flex-col justify-center items-center" style={{ minHeight: 320 }}>
+              <p className="text-white font-bold italic text-center leading-tight mb-5"
                 style={{
                   fontFamily: 'Georgia, serif',
-                  fontSize: verse.text.length > 120 ? '1.15rem' : verse.text.length > 80 ? '1.3rem' : '1.5rem',
-                  textShadow: '2px 2px 6px rgba(0,0,0,0.95), -1px -1px 4px rgba(0,0,0,0.8)',
-                  WebkitTextStroke: '0.3px rgba(0,0,0,0.4)',
+                  fontSize: verse.text.length > 130 ? 'clamp(1.2rem,4.8vw,1.45rem)' : verse.text.length > 80 ? 'clamp(1.4rem,5.5vw,1.75rem)' : 'clamp(1.6rem,6.5vw,2rem)',
+                  textShadow: '2px 3px 8px rgba(0,0,0,1), -1px -1px 6px rgba(0,0,0,0.9)',
                 }}>
                 "{verse.text}"
               </p>
               <p className="font-bold italic text-center"
                 style={{
                   fontFamily: 'Georgia, serif',
-                  fontSize: '1.45rem',
+                  fontSize: 'clamp(1.4rem,5.5vw,1.7rem)',
                   color: '#f5d060',
-                  textShadow: '2px 2px 6px rgba(0,0,0,0.9)',
+                  textShadow: '2px 2px 8px rgba(0,0,0,1)',
                 }}>
                 {verse.reference}
               </p>

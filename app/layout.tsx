@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import PwaRegister from '@/components/PwaRegister'
-import { ThemeProvider } from '@/components/ThemeProvider'
-import ThemeToggle from '@/components/ThemeToggle'
+import AuthProvider from '@/components/AuthProvider'
 
 export const metadata: Metadata = {
   title: 'Bíblia Sagrada Reformada',
@@ -30,12 +29,12 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#0a0807',
+  themeColor: '#111111',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -44,14 +43,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Bíblia Reformada" />
       </head>
-      <body className="bg-obsidian text-parchment antialiased">
-        <ThemeProvider>
+      <body style={{ background: '#111', color: '#e8d5a3', minHeight: '100vh' }}>
+        <AuthProvider>
           <PwaRegister />
-          <ThemeToggle />
           <div className="relative min-h-screen">
             {children}
           </div>
-        </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   )
