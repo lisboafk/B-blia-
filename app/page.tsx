@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Share2, Heart, ChevronDown, BookOpen } from 'lucide-react'
+import { Share2, Heart, BookOpen } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import { getTodayVerse } from '@/data/key-verses'
 import { getTodayDevotional } from '@/data/daily-devotionals'
@@ -59,26 +59,128 @@ async function shareVerseAsImage(text: string, reference: string, bgIndex: numbe
   }
 }
 
-export default function HojePage() {
+function SplashOverlay({ onDismiss }: { onDismiss: () => void }) {
   const now = new Date()
   const hour = now.getHours()
   const day = now.getDate()
   const month = PT_MONTHS[now.getMonth()]
   const isNight = hour >= 18 || hour < 5
-  const isMorning = hour >= 5 && hour < 12
+  const verse = getTodayVerse()
+  const devotional = getTodayDevotional()
+  const [fading, setFading] = useState(false)
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setFading(true), 2200)
+    const t2 = setTimeout(() => onDismiss(), 2900)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [onDismiss])
+
+  const dismiss = () => { setFading(true); setTimeout(onDismiss, 700) }
+
+  const skyBg = isNight
+    ? { background: 'linear-gradient(180deg, #0a0a1a 0%, #0f1535 40%, #1a2050 100%)' }
+    : hour < 12
+      ? { background: 'linear-gradient(180deg, #ffc870 0%, #ff8c40 30%, #ffb86c 60%, #87ceeb 100%)' }
+      : { background: 'linear-gradient(180deg, #87ceeb 0%, #b0d8f0 50%, #e0f0ff 100%)' }
+
+  return (
+    <div
+      onClick={dismiss}
+      className="fixed inset-0 z-50 flex flex-col overflow-hidden transition-opacity duration-700"
+      style={{ ...skyBg, opacity: fading ? 0 : 1, pointerEvents: fading ? 'none' : 'auto' }}
+    >
+      {/* Stars */}
+      {isNight && (
+        <div className="absolute inset-0 pointer-events-none">
+          {[...Array(40)].map((_, i) => (
+            <div key={i} className="absolute rounded-full bg-white"
+              style={{ width: i%5===0?3:i%3===0?2:1, height: i%5===0?3:i%3===0?2:1,
+                left:`${(i*37+13)%95}%`, top:`${(i*23+7)%60}%`, opacity:0.5 }} />
+          ))}
+        </div>
+      )}
+
+      {/* Clouds (day) */}
+      {!isNight && (
+        <>
+          <div className="absolute top-[15%] left-[5%] w-32 h-12 rounded-full bg-white/60 blur-sm" />
+          <div className="absolute top-[12%] left-[12%] w-20 h-8 rounded-full bg-white/50 blur-sm" />
+          <div className="absolute top-[18%] right-[8%] w-28 h-10 rounded-full bg-white/55 blur-sm" />
+        </>
+      )}
+
+      {/* Sun / Moon */}
+      {isNight ? (
+        <div className="absolute top-[14%] right-[22%] w-16 h-16 rounded-full"
+          style={{ background: 'radial-gradient(circle, #fffde0 60%, #ffd060 100%)', boxShadow: '0 0 30px 10px rgba(255,240,80,0.25)' }} />
+      ) : (
+        <div className="absolute top-[18%] left-1/2 -translate-x-1/2 w-20 h-20 rounded-full"
+          style={{ background: 'radial-gradient(circle, #fff0c0 0%, #ffb84a 50%, #e88020 100%)', boxShadow: '0 0 40px 15px rgba(255,140,30,0.35)' }} />
+      )}
+
+      {/* Mountains */}
+      <svg className="absolute bottom-0 left-0 right-0 w-full" viewBox="0 0 400 120" preserveAspectRatio="none">
+        <path d="M0,120 L0,80 L60,35 L110,65 L160,20 L220,60 L270,30 L320,55 L370,25 L400,50 L400,120 Z"
+          fill={isNight ? '#0f1a30' : '#2a6a4a'} opacity="0.9" />
+        <path d="M0,120 L0,95 L50,70 L100,85 L150,60 L200,75 L250,55 L310,80 L360,65 L400,75 L400,120 Z"
+          fill={isNight ? '#0a1220' : '#1a4a2a'} opacity="0.85" />
+      </svg>
+      <div className="absolute bottom-0 left-0 right-0 h-16"
+        style={{ background: isNight ? 'linear-gradient(180deg,#0d2040,#091530)' : 'linear-gradient(180deg,#4ab8d8,#1a6a98)' }} />
+
+      {/* Date & message */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center" style={{ top: '28%' }}>
+        <h1 className="font-black tracking-tight mb-3"
+          style={{ fontSize: 'clamp(2.5rem,10vw,4rem)', color: isNight ? '#e0e8ff' : '#1a2a1a',
+            textShadow: isNight ? '0 2px 12px rgba(0,0,50,0.8)' : '0 2px 8px rgba(255,255,255,0.6)' }}>
+          {month} {day}
+        </h1>
+        <p className="text-lg font-semibold leading-snug max-w-xs mb-2"
+          style={{ color: isNight ? '#7ab0ff' : '#d46010',
+            textShadow: isNight ? '0 1px 8px rgba(0,0,40,0.9)' : '0 1px 6px rgba(255,255,255,0.7)' }}>
+          {devotional.title}
+        </p>
+        <p className="text-sm max-w-sm leading-relaxed"
+          style={{ color: isNight ? '#a0b8e0' : '#2a4a2a', opacity: 0.85,
+            textShadow: isNight ? '0 1px 8px rgba(0,0,40,0.9)' : '0 1px 4px rgba(255,255,255,0.6)' }}>
+          {verse.text.length > 80 ? verse.text.slice(0, 80) + '…' : verse.text}
+        </p>
+      </div>
+
+      {/* Tap hint */}
+      <div className="absolute bottom-24 w-full text-center">
+        <p className="text-xs opacity-40" style={{ color: isNight ? '#a0b8e0' : '#1a3a1a' }}>
+          toque para continuar
+        </p>
+      </div>
+    </div>
+  )
+}
+
+export default function HojePage() {
+  const now = new Date()
+  const hour = now.getHours()
+  const isMorning = hour >= 5 && hour < 18
+  const bgIndex = getDayOfYear() % 7
 
   const verse = getTodayVerse()
   const devotional = getTodayDevotional()
-  const prayer = isMorning || (!isNight && hour < 18) ? getMorningPrayer() : getEveningPrayer()
+  const prayer = isMorning ? getMorningPrayer() : getEveningPrayer()
 
-  const bgIndex = getDayOfYear() % 7
+  const [showSplash, setShowSplash] = useState(false)
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
   const [shareCount, setShareCount] = useState(0)
   const [imgError, setImgError] = useState(false)
-  const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    // Show splash only once per session
+    const shown = sessionStorage.getItem('splash-shown')
+    if (!shown) {
+      setShowSplash(true)
+      sessionStorage.setItem('splash-shown', '1')
+    }
+
     const key = `like-${verse.id}`
     setLiked(localStorage.getItem(key) === '1')
     setLikeCount(parseInt(localStorage.getItem(`${key}-count`) || '127', 10))
@@ -101,128 +203,52 @@ export default function HojePage() {
     localStorage.setItem(`share-${verse.id}`, String(next))
   }
 
-  // Sky gradients that change with time of day
-  const skyGrad = isNight
-    ? 'from-[#0a0a1a] via-[#0f1535] to-[#1a2050]'
-    : isMorning
-      ? 'from-[#ffd4a0] via-[#ffa060] to-[#87ceeb]'
-      : 'from-[#87ceeb] via-[#b0d8f0] to-[#e0f0ff]'
-
-  const skyBg = isNight
-    ? { background: 'linear-gradient(180deg, #0a0a1a 0%, #0f1535 40%, #1a2050 100%)' }
-    : isMorning
-      ? { background: 'linear-gradient(180deg, #ffc870 0%, #ff8c40 30%, #ffb86c 60%, #87ceeb 100%)' }
-      : { background: 'linear-gradient(180deg, #87ceeb 0%, #b0d8f0 50%, #e0f0ff 100%)' }
-
   return (
-    <div className="min-h-screen pb-24 bg-[#111]">
+    <>
+      {/* Splash overlay — shown once per session */}
+      {showSplash && <SplashOverlay onDismiss={() => setShowSplash(false)} />}
 
-      {/* HERO — full-screen illustrated */}
-      <div className="relative h-[100svh] flex flex-col overflow-hidden" style={skyBg}>
+      {/* Main tab content — always rendered */}
+      <div className="min-h-screen pb-24 bg-[#111]">
 
-        {/* Stars (night only) */}
-        {isNight && (
-          <div className="absolute inset-0 pointer-events-none">
-            {[...Array(40)].map((_, i) => (
-              <div key={i} className="absolute rounded-full bg-white"
-                style={{ width: i%5===0?3:i%3===0?2:1, height: i%5===0?3:i%3===0?2:1,
-                  left:`${(i*37+13)%95}%`, top:`${(i*23+7)%60}%`,
-                  opacity: 0.4+Math.random()*0.6 }} />
-            ))}
-          </div>
-        )}
-
-        {/* Clouds (day only) */}
-        {!isNight && (
-          <>
-            <div className="absolute top-[15%] left-[5%] w-32 h-12 rounded-full bg-white/60 blur-sm" />
-            <div className="absolute top-[12%] left-[12%] w-20 h-8 rounded-full bg-white/50 blur-sm" />
-            <div className="absolute top-[18%] right-[8%] w-28 h-10 rounded-full bg-white/55 blur-sm" />
-          </>
-        )}
-
-        {/* Sun / Moon */}
-        {isNight ? (
-          <div className="absolute top-[14%] right-[20%] w-16 h-16 rounded-full"
-            style={{ background: 'radial-gradient(circle, #fffde0 60%, #ffd060 100%)', boxShadow: '0 0 30px 10px rgba(255,240,80,0.25)' }} />
-        ) : (
-          <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-20 h-20 rounded-full"
-            style={{ background: 'radial-gradient(circle, #fff0c0 0%, #ffb84a 50%, #e88020 100%)', boxShadow: '0 0 40px 15px rgba(255,140,30,0.35)' }} />
-        )}
-
-        {/* Mountains silhouette */}
-        <svg className="absolute bottom-0 left-0 right-0 w-full" viewBox="0 0 400 120" preserveAspectRatio="none">
-          <path d="M0,120 L0,80 L60,35 L110,65 L160,20 L220,60 L270,30 L320,55 L370,25 L400,50 L400,120 Z"
-            fill={isNight ? '#0f1a30' : '#2a6a4a'} opacity="0.9" />
-          <path d="M0,120 L0,95 L50,70 L100,85 L150,60 L200,75 L250,55 L310,80 L360,65 L400,75 L400,120 Z"
-            fill={isNight ? '#0a1220' : '#1a4a2a'} opacity="0.85" />
-        </svg>
-
-        {/* Water / shore */}
-        <div className="absolute bottom-0 left-0 right-0 h-16"
-          style={{ background: isNight
-            ? 'linear-gradient(180deg, #0d2040 0%, #091530 100%)'
-            : 'linear-gradient(180deg, #4ab8d8 0%, #2a90b8 50%, #1a6a98 100%)' }} />
-
-        {/* Date & message */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center" style={{ top: '30%' }}>
-          <h1 className="font-black tracking-tight mb-3"
-            style={{ fontSize: 'clamp(2.5rem, 10vw, 4rem)', color: isNight ? '#e0e8ff' : '#1a2a1a',
-              textShadow: isNight ? '0 2px 12px rgba(0,0,50,0.8)' : '0 2px 8px rgba(255,255,255,0.6)' }}>
-            {month} {day}
-          </h1>
-          <p className="text-lg font-semibold leading-snug max-w-xs"
-            style={{ color: isNight ? '#7ab0ff' : '#d46010',
-              textShadow: isNight ? '0 1px 8px rgba(0,0,40,0.9)' : '0 1px 6px rgba(255,255,255,0.7)' }}>
-            {devotional.title}
-          </p>
-          <p className="mt-2 text-sm opacity-80 max-w-sm leading-relaxed"
-            style={{ color: isNight ? '#a0b8e0' : '#2a4a2a',
-              textShadow: isNight ? '0 1px 8px rgba(0,0,40,0.9)' : '0 1px 4px rgba(255,255,255,0.6)' }}>
-            {verse.text.length > 80 ? verse.text.slice(0, 80) + '…' : verse.text}
-          </p>
+        {/* Header */}
+        <div className="px-4 pt-12 pb-2">
+          <h1 className="text-white font-bold text-xl">Versículo de hoje</h1>
         </div>
 
-        {/* Scroll hint */}
-        <button onClick={() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' })}
-          className="absolute bottom-20 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 opacity-60">
-          <span className="text-xs" style={{ color: isNight ? '#a0b8e0' : '#1a3a1a' }}>deslize para baixo</span>
-          <ChevronDown size={20} className={isNight ? 'text-blue-300' : 'text-green-900'} />
-        </button>
-      </div>
-
-      {/* SCROLL CONTENT */}
-      <div ref={scrollRef} className="bg-[#111]">
-
-        {/* Versículo de hoje */}
-        <div className="px-4 pt-6">
-          <h2 className="text-white font-bold text-lg mb-3">Versículo de hoje</h2>
-
-          {/* Verse card */}
-          <div className="relative rounded-2xl overflow-hidden mb-3" style={{ minHeight: 200 }}>
+        {/* Verse card with photo background */}
+        <div className="px-4 pt-3">
+          <div className="relative rounded-2xl overflow-hidden mb-3" style={{ minHeight: 220 }}>
             {!imgError && (
-              <img src={`/bg/theme-${bgIndex}.jpg`} alt="" className="absolute inset-0 w-full h-full object-cover"
+              <img src={`/bg/theme-${bgIndex}.jpg`} alt=""
+                className="absolute inset-0 w-full h-full object-cover"
                 onError={() => setImgError(true)} />
             )}
+            {imgError && (
+              <div className="absolute inset-0"
+                style={{ background: `linear-gradient(160deg, #0a1628, #1a3a5c, #2a6a9c)` }} />
+            )}
             <div className="absolute inset-0"
-              style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.65) 100%)' }} />
-            <div className="relative p-5 flex flex-col justify-center" style={{ minHeight: 200 }}>
-              <p className="text-white text-lg italic leading-relaxed text-center font-serif mb-4">
+              style={{ background: 'linear-gradient(180deg,rgba(0,0,0,0.2) 0%,rgba(0,0,0,0.7) 100%)' }} />
+            <div className="relative p-5 flex flex-col justify-end" style={{ minHeight: 220 }}>
+              <p className="text-white text-lg italic leading-relaxed text-center font-serif mb-3">
                 "{verse.text}"
               </p>
-              <p className="text-[#c9a84c] text-sm font-semibold text-center tracking-wide">
+              <p className="text-[#c9a84c] text-sm font-bold text-center tracking-wide">
                 {verse.reference}
               </p>
             </div>
           </div>
 
-          {/* Share & like row */}
+          {/* Share & like */}
           <div className="flex gap-6 items-center px-1 mb-6">
-            <button onClick={handleShare} className="flex items-center gap-2 text-parchment/60 active:scale-95 transition-transform">
+            <button onClick={handleShare}
+              className="flex items-center gap-2 text-parchment/60 active:scale-95 transition-transform">
               <Share2 size={18} />
               <span className="text-sm">{shareCount.toLocaleString('pt-BR')}</span>
             </button>
-            <button onClick={toggleLike} className={`flex items-center gap-2 transition-all active:scale-95 ${liked ? 'text-red-400' : 'text-parchment/60'}`}>
+            <button onClick={toggleLike}
+              className={`flex items-center gap-2 transition-all active:scale-95 ${liked ? 'text-red-400' : 'text-parchment/60'}`}>
               <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
               <span className="text-sm">{likeCount.toLocaleString('pt-BR')}</span>
             </button>
@@ -237,7 +263,7 @@ export default function HojePage() {
         {/* Prayer section */}
         <div className="px-4">
           <div className="bg-[#1a1a1a] rounded-2xl p-5 mb-4">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-3">
               <span className="text-xl">{prayer.period === 'manha' ? '☀️' : '🌙'}</span>
               <h3 className="text-white font-semibold text-base">{prayer.title}</h3>
             </div>
@@ -266,9 +292,10 @@ export default function HojePage() {
             </p>
           </div>
         </div>
+
       </div>
 
       <Navigation />
-    </div>
+    </>
   )
 }
