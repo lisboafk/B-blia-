@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/fetch-bible.mjs",
+    "prebuild": "node scripts/fetch-bible.mjs && node scripts/generate-images.mjs || true",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

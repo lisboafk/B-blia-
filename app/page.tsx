@@ -177,9 +177,19 @@ export default function Home() {
             style={{ height: '340px', background: theme.bg }}
             onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
 
-            {/* Glow orb */}
+            {/* AI-generated background image (generated at build time by Gemini Imagen) */}
+            <img
+              src={`/bg/theme-${themeIndex}.jpg`}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+            />
+            {/* Dark overlay so text is always readable */}
+            <div className="absolute inset-0 bg-black/50" />
+
+            {/* Glow orb (visible when no image) */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-64 h-64 rounded-full opacity-20 blur-3xl"
+              <div className="w-64 h-64 rounded-full opacity-10 blur-3xl"
                 style={{ background: theme.accent }} />
             </div>
 
