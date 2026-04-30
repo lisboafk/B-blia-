@@ -31,28 +31,77 @@ async function shareVerseAsImage(text: string, reference: string, bgIndex: numbe
   const canvas = document.createElement('canvas')
   canvas.width = 1080; canvas.height = 1080
   const ctx = canvas.getContext('2d')!
-  const GRADS = [
-    ['#0a1628','#1a3a5c','#2a6a9c'],['#1a0800','#5c1f00','#c47a0a'],
-    ['#0a0020','#2a0060','#6a20c0'],['#001a14','#005a40','#20d4a0'],
-    ['#180a00','#4a2200','#c47a0a'],['#020814','#0e2755','#3070e0'],
-    ['#12001a','#3a0860','#9e3ad4'],
-  ]
-  const colors = GRADS[bgIndex % GRADS.length]
-  const grad = ctx.createLinearGradient(0, 0, 1080, 1080)
-  grad.addColorStop(0, colors[0]); grad.addColorStop(0.5, colors[1]); grad.addColorStop(1, colors[2])
-  ctx.fillStyle = grad; ctx.fillRect(0, 0, 1080, 1080)
-  ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.beginPath(); ctx.arc(540, 360, 380, 0, Math.PI*2); ctx.fill()
-  ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.font = 'italic 52px Georgia,serif'; ctx.textAlign = 'center'
-  const lines = wrapText(ctx, `"${text}"`, 860)
-  const startY = 540 - (lines.length - 1) * 34
-  lines.forEach((l, i) => ctx.fillText(l, 540, startY + i * 68))
-  ctx.fillStyle = 'rgba(201,168,76,0.9)'; ctx.font = 'bold 36px Georgia,serif'
-  ctx.fillText(reference, 540, startY + lines.length * 68 + 40)
-  ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.font = '24px Cinzel,serif'
-  ctx.fillText('Bíblia Sagrada Reformada', 540, 1030)
-  const blob = await new Promise<Blob>(r => canvas.toBlob(b => r(b!), 'image/jpeg', 0.9))
+
+  // 1. Try loading the real background photo
+  let photoLoaded = false
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image()
+      image.crossOrigin = 'anonymous'
+      image.onload = () => resolve(image)
+      image.onerror = reject
+      image.src = `/bg/theme-${bgIndex}.jpg`
+    })
+    const scale = Math.max(1080 / img.naturalWidth, 1080 / img.naturalHeight)
+    const w = img.naturalWidth * scale
+    const h = img.naturalHeight * scale
+    ctx.drawImage(img, (1080 - w) / 2, (1080 - h) / 2, w, h)
+    photoLoaded = true
+  } catch { /* fallback below */ }
+
+  if (!photoLoaded) {
+    const GRADS = [
+      ['#0a1628','#1a3a5c','#2a6a9c'],['#1a0800','#5c1f00','#c47a0a'],
+      ['#0a0020','#2a0060','#6a20c0'],['#001a14','#005a40','#20d4a0'],
+      ['#180a00','#4a2200','#c47a0a'],['#020814','#0e2755','#3070e0'],
+      ['#12001a','#3a0860','#9e3ad4'],
+    ]
+    const colors = GRADS[bgIndex % GRADS.length]
+    const grad = ctx.createLinearGradient(0, 0, 1080, 1080)
+    grad.addColorStop(0, colors[0]); grad.addColorStop(0.5, colors[1]); grad.addColorStop(1, colors[2])
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, 1080, 1080)
+  }
+
+  // 2. Dark overlay for readability
+  const overlay = ctx.createLinearGradient(0, 0, 0, 1080)
+  overlay.addColorStop(0, 'rgba(0,0,0,0.45)')
+  overlay.addColorStop(0.5, 'rgba(0,0,0,0.60)')
+  overlay.addColorStop(1, 'rgba(0,0,0,0.75)')
+  ctx.fillStyle = overlay; ctx.fillRect(0, 0, 1080, 1080)
+
+  ctx.textAlign = 'center'
+
+  // 3. Verse text — bold italic, large, with stroke
+  const fontSize = text.length > 120 ? 58 : text.length > 80 ? 66 : 74
+  ctx.font = `bold italic ${fontSize}px Georgia,serif`
+  const lines = wrapText(ctx, `"${text}"`, 940)
+  const lineH = fontSize * 1.38
+  const textBlockH = lines.length * lineH
+  const startY = (1080 - textBlockH - 140) / 2 + lineH
+
+  ctx.lineJoin = 'round'
+  lines.forEach((line, i) => {
+    const y = startY + i * lineH
+    ctx.strokeStyle = 'rgba(0,0,0,0.95)'; ctx.lineWidth = 14
+    ctx.strokeText(line, 540, y)
+    ctx.fillStyle = '#ffffff'; ctx.fillText(line, 540, y)
+  })
+
+  // 4. Reference — large italic gold
+  const refY = startY + lines.length * lineH + 70
+  ctx.font = `bold italic ${Math.min(72, fontSize + 4)}px Georgia,serif`
+  ctx.strokeStyle = 'rgba(0,0,0,0.9)'; ctx.lineWidth = 10
+  ctx.strokeText(reference, 540, refY)
+  ctx.fillStyle = '#f5d060'; ctx.fillText(reference, 540, refY)
+
+  // 5. Watermark
+  ctx.font = '26px sans-serif'
+  ctx.fillStyle = 'rgba(255,255,255,0.30)'
+  ctx.fillText('Bíblia Sagrada Reformada', 540, 1045)
+
+  const blob = await new Promise<Blob>(r => canvas.toBlob(b => r(b!), 'image/jpeg', 0.92))
   const file = new File([blob], 'versiculo.jpg', { type: 'image/jpeg' })
-  if (navigator.share && navigator.canShare({ files: [file] })) {
+  if (navigator.share && navigator.canShare?.({ files: [file] })) {
     await navigator.share({ files: [file], text: `${text}\n— ${reference}` })
   } else {
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'versiculo.jpg'; a.click()
@@ -218,7 +267,7 @@ export default function HojePage() {
 
         {/* Verse card with photo background */}
         <div className="px-4 pt-3">
-          <div className="relative rounded-2xl overflow-hidden mb-3" style={{ minHeight: 220 }}>
+          <div className="relative rounded-2xl overflow-hidden mb-3" style={{ minHeight: 300 }}>
             {!imgError && (
               <img src={`/bg/theme-${bgIndex}.jpg`} alt=""
                 className="absolute inset-0 w-full h-full object-cover"
@@ -229,12 +278,24 @@ export default function HojePage() {
                 style={{ background: `linear-gradient(160deg, #0a1628, #1a3a5c, #2a6a9c)` }} />
             )}
             <div className="absolute inset-0"
-              style={{ background: 'linear-gradient(180deg,rgba(0,0,0,0.2) 0%,rgba(0,0,0,0.7) 100%)' }} />
-            <div className="relative p-5 flex flex-col justify-end" style={{ minHeight: 220 }}>
-              <p className="text-white text-lg italic leading-relaxed text-center font-serif mb-3">
+              style={{ background: 'linear-gradient(180deg,rgba(0,0,0,0.25) 0%,rgba(0,0,0,0.72) 100%)' }} />
+            <div className="relative px-5 pt-6 pb-5 flex flex-col justify-center items-center" style={{ minHeight: 300 }}>
+              <p className="text-white font-bold italic text-center leading-snug mb-4"
+                style={{
+                  fontFamily: 'Georgia, serif',
+                  fontSize: verse.text.length > 120 ? '1.15rem' : verse.text.length > 80 ? '1.3rem' : '1.5rem',
+                  textShadow: '2px 2px 6px rgba(0,0,0,0.95), -1px -1px 4px rgba(0,0,0,0.8)',
+                  WebkitTextStroke: '0.3px rgba(0,0,0,0.4)',
+                }}>
                 "{verse.text}"
               </p>
-              <p className="text-[#c9a84c] text-sm font-bold text-center tracking-wide">
+              <p className="font-bold italic text-center"
+                style={{
+                  fontFamily: 'Georgia, serif',
+                  fontSize: '1.45rem',
+                  color: '#f5d060',
+                  textShadow: '2px 2px 6px rgba(0,0,0,0.9)',
+                }}>
                 {verse.reference}
               </p>
             </div>

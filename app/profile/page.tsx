@@ -203,7 +203,7 @@ export default function ProfilePage() {
           ))}
 
           <button onClick={clearCache}
-            className="flex items-center gap-3 w-full px-4 py-3 active:bg-[#2a2a2a] transition-colors">
+            className="flex items-center gap-3 w-full px-4 py-3 border-b border-[#2a2a2a] active:bg-[#2a2a2a] transition-colors">
             <Trash2 size={18} className="text-parchment/50" />
             <span className="text-parchment/80 text-sm">{cleared ? 'Cache limpo!' : 'Limpar Cache'}</span>
           </button>
@@ -213,6 +213,13 @@ export default function ProfilePage() {
             <span className="text-parchment/80 text-sm">Favoritos</span>
             <span className="ml-auto text-parchment/40 text-sm">{favCount}</span>
           </div>
+        </div>
+
+        {/* Admin access — hidden, small */}
+        <div className="mt-8 text-center">
+          <Link href="/admin" className="text-parchment/15 text-xs">
+            ···
+          </Link>
         </div>
 
       </div>
