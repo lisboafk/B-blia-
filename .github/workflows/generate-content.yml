@@ -1,0 +1,52 @@
+name: Gerar Conteúdo Diário com IA
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # 6h UTC — conteúdo da manhã
+    - cron: '0 18 * * *'  # 18h UTC — conteúdo da noite
+  workflow_dispatch:
+    inputs:
+      period:
+        description: 'Período (manha ou noite)'
+        required: false
+        default: 'manha'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Determinar período
+        id: period
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ github.event.inputs.period }}" >> $GITHUB_OUTPUT
+          elif [ "$(date -u +%H)" -lt "12" ]; then
+            echo "value=manha" >> $GITHUB_OUTPUT
+          else
+            echo "value=noite" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Gerar conteúdo
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PERIOD: ${{ steps.period.outputs.value }}
+        run: node scripts/generate-content.mjs
+
+      - name: Commit e push
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: conteúdo IA gerado (${{ steps.period.outputs.value }}) [skip ci]"
+          file_pattern: data/generated.json
+          commit_user_name: "github-actions[bot]"
+          commit_user_email: "github-actions[bot]@users.noreply.github.com"

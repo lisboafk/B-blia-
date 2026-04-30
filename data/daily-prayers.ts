@@ -8,17 +8,40 @@ export interface DailyPrayer {
   prayer: string
 }
 
+import generatedRaw from './generated.json'
+
 function getDayOfYear(): number {
   const now = new Date()
   return Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const _gen = generatedRaw as any
+const GENERATED_MORNING: DailyPrayer[] = (_gen.morningPrayers || []).map((p: any) => ({
+  id: p.id, period: 'manha' as const,
+  title: p.title || 'Oração da Manhã',
+  reference: p.reference || '',
+  book: p.book || 'salmos',
+  chapter: p.chapter || 1,
+  prayer: p.prayer || '',
+}))
+const GENERATED_EVENING: DailyPrayer[] = (_gen.eveningPrayers || []).map((p: any) => ({
+  id: p.id, period: 'noite' as const,
+  title: p.title || 'Oração da Noite',
+  reference: p.reference || '',
+  book: p.book || 'salmos',
+  chapter: p.chapter || 1,
+  prayer: p.prayer || '',
+}))
+
 export function getMorningPrayer(): DailyPrayer {
-  return MORNING_PRAYERS[getDayOfYear() % MORNING_PRAYERS.length]
+  const all = [...MORNING_PRAYERS, ...GENERATED_MORNING]
+  return all[getDayOfYear() % all.length]
 }
 
 export function getEveningPrayer(): DailyPrayer {
-  return EVENING_PRAYERS[getDayOfYear() % EVENING_PRAYERS.length]
+  const all = [...EVENING_PRAYERS, ...GENERATED_EVENING]
+  return all[getDayOfYear() % all.length]
 }
 
 export const MORNING_PRAYERS: DailyPrayer[] = [

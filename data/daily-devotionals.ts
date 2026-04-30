@@ -12,6 +12,8 @@ export interface Devotional {
   theme: string
 }
 
+import generatedRaw from './generated.json'
+
 function getDayOfYear(): number {
   const now = new Date()
   return Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
@@ -21,8 +23,29 @@ function getWeekOfYear(): number {
   return Math.floor(getDayOfYear() / 7)
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const _gen = generatedRaw as any
+const GENERATED_DEVOTIONALS: Devotional[] = (_gen.devotionals || []).map((d: any) => ({
+  id: d.id,
+  day: d.theme,
+  title: d.title,
+  theme: d.theme,
+  reference: d.reference || '',
+  book: d.book || '',
+  chapter: d.chapter || 1,
+  verse: d.verseNum || 1,
+  verseText: d.verse || '',
+  reflection: d.content || '',
+  prayer: d.prayer || '',
+}))
+
 export function getTodayDevotional(): Devotional {
-  return DEVOTIONALS[getWeekOfYear() % DEVOTIONALS.length]
+  const all = [...DEVOTIONALS, ...GENERATED_DEVOTIONALS]
+  return all[getWeekOfYear() % all.length]
+}
+
+export function getAllDevotionals(): Devotional[] {
+  return [...DEVOTIONALS, ...GENERATED_DEVOTIONALS]
 }
 
 export const DEVOTIONALS: Devotional[] = [

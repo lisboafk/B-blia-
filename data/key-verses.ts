@@ -9,13 +9,34 @@ export interface KeyVerse {
   color: string
 }
 
+import generatedRaw from './generated.json'
+
 function getDayOfYear(): number {
   const now = new Date()
   return Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
 }
 
+const VERSE_COLORS = ['#c9a84c', '#ff6b35', '#ffd700', '#60a5fa', '#4ade80', '#c084fc', '#f87171']
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const _gen = generatedRaw as any
+const GENERATED_VERSES: KeyVerse[] = (_gen.verses || []).map((v: any, i: number) => ({
+  id: v.id,
+  reference: v.reference || '',
+  book: v.book || '',
+  chapter: v.chapter || 1,
+  verse: v.verse || 1,
+  text: v.text || '',
+  theme: 'Gerado',
+  color: VERSE_COLORS[i % VERSE_COLORS.length],
+}))
+
 export function getTodayVerse(): KeyVerse {
-  return DAILY_VERSES[getDayOfYear() % DAILY_VERSES.length]
+  const all = [...DAILY_VERSES, ...GENERATED_VERSES]
+  return all[getDayOfYear() % all.length]
+}
+
+export function getAllVerses(): KeyVerse[] {
+  return [...DAILY_VERSES, ...GENERATED_VERSES]
 }
 
 export const DAILY_VERSES: KeyVerse[] = [
