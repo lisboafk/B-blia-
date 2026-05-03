@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Trophy, CheckCircle, XCircle, Lock, Star } from 'lucide-react'
+import Link from 'next/link'
+import { Trophy, CheckCircle, XCircle, Star, ChevronLeft, Volume2 } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import { getTodayVerse } from '@/data/key-verses'
 
@@ -78,6 +79,7 @@ export default function QuizPage() {
   const [correct, setCorrect] = useState(0)
   const [piecesUnlocked, setPiecesUnlocked] = useState(0)
   const [answers, setAnswers] = useState<(boolean | null)[]>(Array(5).fill(null))
+  const [showAmem, setShowAmem] = useState(false)
 
   useEffect(() => {
     const key = `quiz-week-${getWeekOfYear()}`
@@ -93,7 +95,11 @@ export default function QuizPage() {
     const newAnswers = [...answers]
     newAnswers[qIndex] = isCorrect
     setAnswers(newAnswers)
-    if (isCorrect) setCorrect(c => c + 1)
+    if (isCorrect) {
+      setCorrect(c => c + 1)
+      setShowAmem(true)
+      setTimeout(() => setShowAmem(false), 1500)
+    }
 
     setTimeout(() => {
       if (qIndex + 1 < todayQuestions.length) {
@@ -108,10 +114,75 @@ export default function QuizPage() {
         setPiecesUnlocked(next)
         setPhase('done')
       }
-    }, 900)
+    }, 1200)
   }
 
   const q = todayQuestions[qIndex]
+
+  // Quiz phase — full redesign
+  if (phase === 'quiz') {
+    return (
+      <div className="min-h-screen bg-[#111]">
+
+        {/* Amém celebration overlay */}
+        {showAmem && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+            <div className="bg-red-600 px-10 py-6 rounded-2xl shadow-2xl">
+              <p className="text-white text-5xl font-black text-center">🙏 Amém!</p>
+            </div>
+          </div>
+        )}
+
+        {/* Header */}
+        <div className="flex items-center px-4 pt-12 pb-5 gap-3">
+          <button onClick={() => { setPhase('puzzle'); setQIndex(0); setSelected(null); setCorrect(0); setAnswers(Array(5).fill(null)) }}
+            className="text-white/50">
+            <ChevronLeft size={24} />
+          </button>
+          <span className="text-2xl">🧩</span>
+          <div className="flex-1 bg-[#2a2a2a] rounded-full h-2">
+            <div className="bg-[#c9a84c] h-2 rounded-full transition-all duration-500"
+              style={{ width: `${(correct / todayQuestions.length) * 100}%` }} />
+          </div>
+          <span className="text-white text-sm font-bold">{correct}/{todayQuestions.length}</span>
+        </div>
+
+        {/* Question box */}
+        <div className="mx-4 mb-5 border-2 border-[#c9a84c]/60 rounded-2xl bg-[#1a1a00] overflow-hidden">
+          <div className="flex justify-between items-center px-4 py-2.5 border-b border-[#c9a84c]/20">
+            <span className="text-[#c9a84c] text-sm font-medium">Questão {qIndex + 1}/{todayQuestions.length}</span>
+            <Volume2 size={18} className="text-white/40" />
+          </div>
+          <p className="px-5 py-6 text-white text-xl font-medium leading-snug">{q.q}</p>
+        </div>
+
+        {/* Pill answer buttons */}
+        <div className="px-4 space-y-3">
+          {q.options.map((opt, i) => {
+            const isSelected = selected === i
+            const isCorrectOpt = i === q.correct
+            let cls = 'bg-[#2a2a2a] text-white'
+            let icon: string | null = null
+
+            if (selected !== null) {
+              if (isCorrectOpt) { cls = 'bg-[#4ade80] text-white'; icon = '✓' }
+              else if (isSelected) { cls = 'bg-orange-400 text-white'; icon = '✗' }
+              else { cls = 'bg-[#2a2a2a] text-white/40' }
+            }
+
+            return (
+              <button key={i} onClick={() => handleAnswer(i)}
+                className={`w-full ${cls} rounded-full py-4 px-6 text-lg font-semibold flex items-center gap-3 transition-colors text-left`}>
+                {icon && <span className="font-black text-xl shrink-0 w-6 text-center">{icon}</span>}
+                {!icon && <span className="w-6 shrink-0" />}
+                <span>{opt}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#111] pb-28">
@@ -131,28 +202,23 @@ export default function QuizPage() {
       <div className="mx-4 mb-6">
         <div className="relative rounded-2xl border-2 border-[#c9a84c]/50 bg-[#1a1200] overflow-hidden"
           style={{ minHeight: 280 }}>
-          {/* Corner decorations */}
           <div className="absolute top-3 left-3 w-8 h-8 border-l-2 border-t-2 border-[#c9a84c]/40 rounded-tl" />
           <div className="absolute top-3 right-3 w-8 h-8 border-r-2 border-t-2 border-[#c9a84c]/40 rounded-tr" />
           <div className="absolute bottom-3 left-3 w-8 h-8 border-l-2 border-b-2 border-[#c9a84c]/40 rounded-bl" />
           <div className="absolute bottom-3 right-3 w-8 h-8 border-r-2 border-b-2 border-[#c9a84c]/40 rounded-br" />
 
-          {/* Puzzle grid overlay */}
           <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
             {[0,1,2,3].map(i => (
-              <div key={i} className={`border border-[#c9a84c]/20 flex items-center justify-center ${
-                i < piecesUnlocked ? 'opacity-0' : ''
-              }`}>
+              <div key={i} className={`border border-[#c9a84c]/20 flex items-center justify-center ${i < piecesUnlocked ? 'opacity-0' : ''}`}>
                 {i >= piecesUnlocked && (
                   <div className="bg-[#c9a84c]/15 rounded-xl p-2">
-                    <Lock size={20} className="text-[#c9a84c]" />
+                    <span className="text-[#c9a84c] text-2xl">🔒</span>
                   </div>
                 )}
               </div>
             ))}
           </div>
 
-          {/* Center verse */}
           <div className="relative flex flex-col items-center justify-center py-12 px-8 text-center" style={{ minHeight: 280 }}>
             <div className="bg-[#111]/80 rounded-2xl px-4 py-5 backdrop-blur">
               <p className="text-white/90 text-sm italic leading-relaxed font-serif mb-3">
@@ -179,19 +245,18 @@ export default function QuizPage() {
             ? 'Parabéns! Você completou o quebra-cabeça desta semana.'
             : `${piecesUnlocked}/4 peças desbloqueadas. Faça o quiz para ganhar mais!`}
         </p>
-        {/* Progress bar */}
         <div className="mt-3 mx-8 bg-[#2a2a2a] rounded-full h-2">
           <div className="bg-[#c9a84c] h-2 rounded-full transition-all duration-500"
             style={{ width: `${(piecesUnlocked / 4) * 100}%` }} />
         </div>
       </div>
 
-      {/* Quiz section */}
+      {/* Start quiz button */}
       {phase === 'puzzle' && (
         <div className="px-4">
           <button
             onClick={() => setPhase('quiz')}
-            className="w-full py-4 rounded-2xl font-bold text-base text-[#111] transition-transform active:scale-[0.98]"
+            className="w-full py-4 rounded-full font-bold text-base text-[#111] transition-transform active:scale-[0.98]"
             style={{ background: 'linear-gradient(90deg, #c9a84c, #e8c870)' }}>
             Começar Quiz
           </button>
@@ -199,52 +264,7 @@ export default function QuizPage() {
         </div>
       )}
 
-      {phase === 'quiz' && (
-        <div className="px-4">
-          {/* Progress */}
-          <div className="flex items-center gap-2 mb-4">
-            {todayQuestions.map((_, i) => (
-              <div key={i} className={`flex-1 h-1.5 rounded-full transition-colors ${
-                answers[i] === true ? 'bg-[#4ade80]' :
-                answers[i] === false ? 'bg-red-500' :
-                i === qIndex ? 'bg-[#c9a84c]' : 'bg-[#2a2a2a]'
-              }`} />
-            ))}
-          </div>
-          <p className="text-parchment/40 text-xs mb-4">Pergunta {qIndex+1} de {todayQuestions.length}</p>
-
-          {/* Question */}
-          <div className="bg-[#1a1a1a] rounded-2xl p-5 mb-4">
-            <p className="text-white text-base font-semibold leading-relaxed">{q.q}</p>
-          </div>
-
-          {/* Options */}
-          <div className="space-y-3">
-            {q.options.map((opt, i) => {
-              const isSelected = selected === i
-              const isCorrectOpt = i === q.correct
-              let style = 'bg-[#1a1a1a] border-transparent text-white'
-              if (selected !== null) {
-                if (isCorrectOpt) style = 'bg-[#4ade80]/15 border-[#4ade80] text-[#4ade80]'
-                else if (isSelected) style = 'bg-red-500/15 border-red-500 text-red-400'
-                else style = 'bg-[#1a1a1a] border-transparent text-parchment/40'
-              }
-              return (
-                <button key={i} onClick={() => handleAnswer(i)}
-                  className={`w-full text-left px-4 py-3.5 rounded-xl border-2 transition-all flex items-center gap-3 ${style}`}>
-                  <span className="w-6 h-6 rounded-full border border-current flex items-center justify-center text-xs font-bold shrink-0">
-                    {String.fromCharCode(65+i)}
-                  </span>
-                  <span className="text-sm">{opt}</span>
-                  {selected !== null && isCorrectOpt && <CheckCircle size={18} className="ml-auto text-[#4ade80]" />}
-                  {selected !== null && isSelected && !isCorrectOpt && <XCircle size={18} className="ml-auto text-red-400" />}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
+      {/* Done screen */}
       {phase === 'done' && (
         <div className="px-4 text-center">
           <div className="bg-[#1a1a1a] rounded-2xl p-8">

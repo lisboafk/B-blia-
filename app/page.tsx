@@ -325,9 +325,9 @@ export default function HojePage() {
           <div className="bg-[#1a1a1a] rounded-2xl p-5 mb-4">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-xl">{prayer.period === 'manha' ? '☀️' : '🌙'}</span>
-              <h3 className="text-white font-semibold text-base">{prayer.title}</h3>
+              <h3 className="text-white font-semibold text-xl">{prayer.title}</h3>
             </div>
-            <p className="text-parchment/80 text-base leading-relaxed mb-3">
+            <p className="text-parchment/80 text-xl leading-relaxed mb-3">
               {verse.text}
             </p>
             <Link href={`/bible/${prayer.book}/${prayer.chapter}`}
@@ -338,16 +338,16 @@ export default function HojePage() {
 
           {/* Inspiração */}
           <div className="mb-4">
-            <h3 className="text-white font-bold text-lg mb-3">Inspiração</h3>
-            <p className="text-parchment/70 text-base leading-relaxed">
+            <h3 className="text-white font-bold text-2xl mb-3">Inspiração</h3>
+            <p className="text-parchment/70 text-xl leading-relaxed">
               {devotional.reflection}
             </p>
           </div>
 
           {/* Oração */}
           <div className="bg-[#1a1a1a] rounded-2xl p-5 mb-6">
-            <h3 className="text-white font-bold text-lg mb-3">Oração</h3>
-            <p className="text-parchment/80 text-base leading-relaxed italic">
+            <h3 className="text-white font-bold text-2xl mb-3">Oração</h3>
+            <p className="text-parchment/80 text-xl leading-relaxed italic">
               {prayer.prayer}
             </p>
           </div>
