@@ -3,7 +3,6 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { Share2, Heart, BookOpen, Volume2, VolumeX } from 'lucide-react'
 import Navigation from '@/components/Navigation'
-import { getTodayVerse } from '@/data/key-verses'
 import { getTodayDevotional } from '@/data/daily-devotionals'
 import { getMorningPrayer, getEveningPrayer } from '@/data/daily-prayers'
 
@@ -159,10 +158,6 @@ async function shareVerseAsImage(text: string, reference: string, imageUrl: stri
   ctx.strokeText(reference, 540, refY)
   ctx.fillStyle = '#f5d060'; ctx.fillText(reference, 540, refY)
 
-  ctx.font = '26px sans-serif'
-  ctx.fillStyle = 'rgba(255,255,255,0.28)'
-  ctx.fillText('Bíblia Sagrada Reformada', 540, 1045)
-
   const blob = await new Promise<Blob>(r => canvas.toBlob(b => r(b!), 'image/jpeg', 0.93))
   const file = new File([blob], 'versiculo.jpg', { type: 'image/jpeg' })
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
@@ -179,7 +174,6 @@ function SplashOverlay({ onDismiss }: { onDismiss: () => void }) {
   const day = now.getDate()
   const month = PT_MONTHS[now.getMonth()]
   const isNight = hour >= 18 || hour < 5
-  const verse = getTodayVerse()
   const devotional = getTodayDevotional()
   const [fading, setFading] = useState(false)
 
@@ -247,7 +241,7 @@ function SplashOverlay({ onDismiss }: { onDismiss: () => void }) {
         <p className="text-sm max-w-sm leading-relaxed"
           style={{ color: isNight ? '#a0b8e0' : '#2a4a2a', opacity: 0.85,
             textShadow: isNight ? '0 1px 8px rgba(0,0,40,0.9)' : '0 1px 4px rgba(255,255,255,0.6)' }}>
-          {verse.text.length > 80 ? verse.text.slice(0, 80) + '…' : verse.text}
+          {devotional.verseText.length > 80 ? devotional.verseText.slice(0, 80) + '…' : devotional.verseText}
         </p>
       </div>
       <div className="absolute bottom-24 w-full text-center">
@@ -264,9 +258,16 @@ export default function HojePage() {
   const isMorning = hour >= 5 && hour < 18
   const bgIndex = getDayOfYear() % 7
 
-  const verse = getTodayVerse()
   const devotional = getTodayDevotional()
   const prayer = isMorning ? getMorningPrayer() : getEveningPrayer()
+
+  // Verse data comes from today's devotional so Inspiração always explains the displayed verse
+  const verseId = devotional.id
+  const verseText = devotional.verseText
+  const verseReference = devotional.reference
+  const verseBook = devotional.book
+  const verseChapter = devotional.chapter
+  const verseVerse = devotional.verse
 
   const [showSplash, setShowSplash] = useState(false)
   const [liked, setLiked] = useState(false)
@@ -278,8 +279,8 @@ export default function HojePage() {
 
   // Deterministic AI image URL for this verse
   const verseImageUrl = useMemo(
-    () => getVerseImageUrl(verse.book, verse.chapter, verse.verse || 1),
-    [verse.book, verse.chapter, verse.verse]
+    () => getVerseImageUrl(verseBook, verseChapter, verseVerse || 1),
+    [verseBook, verseChapter, verseVerse]
   )
 
   // Gradient fallback colors (shown while AI image loads)
@@ -297,14 +298,14 @@ export default function HojePage() {
       setShowSplash(true)
       sessionStorage.setItem('splash-shown', '1')
     }
-    const key = `like-${verse.id}`
+    const key = `like-${verseId}`
     setLiked(localStorage.getItem(key) === '1')
     setLikeCount(parseInt(localStorage.getItem(`${key}-count`) || '127', 10))
-    setShareCount(parseInt(localStorage.getItem(`share-${verse.id}`) || '89', 10))
-  }, [verse.id])
+    setShareCount(parseInt(localStorage.getItem(`share-${verseId}`) || '89', 10))
+  }, [verseId])
 
   const toggleLike = () => {
-    const key = `like-${verse.id}`
+    const key = `like-${verseId}`
     const next = !liked
     const count = likeCount + (next ? 1 : -1)
     setLiked(next); setLikeCount(count)
@@ -313,15 +314,15 @@ export default function HojePage() {
   }
 
   const handleShare = async () => {
-    await shareVerseAsImage(verse.text, verse.reference, verseImageUrl)
+    await shareVerseAsImage(verseText, verseReference, verseImageUrl)
     const next = shareCount + 1
     setShareCount(next)
-    localStorage.setItem(`share-${verse.id}`, String(next))
+    localStorage.setItem(`share-${verseId}`, String(next))
   }
 
   const speakVerse = () => {
     if (speaking) { window.speechSynthesis.cancel(); setSpeaking(false); return }
-    const u = new SpeechSynthesisUtterance(`${verse.text}. ${verse.reference}`)
+    const u = new SpeechSynthesisUtterance(`${verseText}. ${verseReference}`)
     u.lang = 'pt-BR'
     u.rate = 0.85
     const voices = window.speechSynthesis.getVoices()
@@ -376,7 +377,7 @@ export default function HojePage() {
             {!imgError && (
               <img
                 src={verseImageUrl}
-                alt={`Ilustração bíblica para ${verse.reference}`}
+                alt={`Ilustração bíblica para ${verseReference}`}
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
                 onLoad={() => setImgLoaded(true)}
                 onError={() => setImgError(true)}
@@ -392,14 +393,14 @@ export default function HojePage() {
               <p className="text-white font-bold italic text-center leading-tight mb-5"
                 style={{
                   fontFamily: 'Georgia, serif',
-                  fontSize: verse.text.length > 130
+                  fontSize: verseText.length > 130
                     ? 'clamp(1.2rem,4.8vw,1.45rem)'
-                    : verse.text.length > 80
+                    : verseText.length > 80
                       ? 'clamp(1.4rem,5.5vw,1.75rem)'
                       : 'clamp(1.6rem,6.5vw,2rem)',
                   textShadow: '2px 3px 8px rgba(0,0,0,1), -1px -1px 6px rgba(0,0,0,0.9)',
                 }}>
-                "{verse.text}"
+                "{verseText}"
               </p>
               <p className="font-bold italic text-center"
                 style={{
@@ -408,7 +409,7 @@ export default function HojePage() {
                   color: '#f5d060',
                   textShadow: '2px 2px 8px rgba(0,0,0,1)',
                 }}>
-                {verse.reference}
+                {verseReference}
               </p>
             </div>
 
@@ -437,7 +438,7 @@ export default function HojePage() {
               {speaking ? <VolumeX size={18} /> : <Volume2 size={18} />}
               <span className="text-xs">{speaking ? 'parar' : 'ouvir'}</span>
             </button>
-            <Link href={`/bible/${verse.book}/${verse.chapter}`} aria-label="Ler capítulo completo"
+            <Link href={`/bible/${verseBook}/${verseChapter}`} aria-label="Ler capítulo completo"
               className="ml-auto flex items-center gap-1.5 text-[#4ade80] text-sm">
               <BookOpen size={15} />
               Ler capítulo

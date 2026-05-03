@@ -1,8 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useSession, signIn } from 'next-auth/react'
-import { ChevronRight, BookOpen, Bell, Trash2, Settings, RefreshCw, Shield } from 'lucide-react'
+import { ChevronRight, BookOpen, Bell, Trash2, Settings, RefreshCw } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 
 const BOOK_LABELS: Record<string, { name: string; chapters: number }> = {
@@ -26,38 +25,7 @@ function getBookProgress(bookId: string, readChapters: Set<string>): { read: num
   return { read, total: info.chapters }
 }
 
-function LoginScreen() {
-  return (
-    <div className="min-h-screen bg-[#111] flex flex-col items-center justify-center px-8 text-center pb-28">
-      <div className="w-24 h-24 rounded-3xl bg-[#c9a84c]/15 flex items-center justify-center mx-auto mb-6">
-        <span className="text-5xl">✝️</span>
-      </div>
-      <h1 className="text-white font-bold text-2xl mb-2">Bíblia Sagrada</h1>
-      <p className="text-white/40 text-sm max-w-xs mb-10">
-        Entre com sua conta Google para salvar seu progresso e favoritos.
-      </p>
-      <button
-        onClick={() => signIn('google', { callbackUrl: '/profile' })}
-        className="flex items-center gap-3 bg-white text-[#111] font-semibold px-6 py-4 rounded-2xl text-sm active:scale-95 transition-transform w-full max-w-xs justify-center mb-5"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24">
-          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-        </svg>
-        Entrar com Google
-      </button>
-      <Link href="/" className="text-white/30 text-sm">Continuar sem login</Link>
-      <Navigation />
-    </div>
-  )
-}
-
 export default function ProfilePage() {
-  const { data: session, status } = useSession()
-  const isAdmin = (session?.user as { isAdmin?: boolean })?.isAdmin === true
-
   const [favCount, setFavCount] = useState(0)
   const [prayerCount, setPrayerCount] = useState(0)
   const [readMinutes, setReadMinutes] = useState(0)
@@ -91,18 +59,6 @@ export default function ProfilePage() {
     setCleared(true); setTimeout(() => setCleared(false), 2000)
   }
 
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-[#111] flex items-center justify-center">
-        <RefreshCw size={24} className="text-[#c9a84c] animate-spin" />
-      </div>
-    )
-  }
-
-  if (!session) {
-    return <LoginScreen />
-  }
-
   const booksToShow = recentBooks.length > 0 ? recentBooks : ['lucas', 'isaias']
 
   return (
@@ -120,21 +76,6 @@ export default function ProfilePage() {
       </div>
 
       <div className="px-4 space-y-4">
-
-        {/* Admin button — visible only for admin */}
-        {isAdmin && (
-          <Link href="/admin"
-            className="flex items-center gap-3 bg-[#c9a84c]/10 border border-[#c9a84c]/40 rounded-2xl p-4 active:bg-[#c9a84c]/20 transition-colors">
-            <div className="w-10 h-10 rounded-xl bg-[#c9a84c]/20 flex items-center justify-center shrink-0">
-              <Shield size={20} className="text-[#c9a84c]" />
-            </div>
-            <div className="flex-1">
-              <p className="text-[#c9a84c] font-semibold text-sm">Painel Admin</p>
-              <p className="text-white/40 text-xs">Gerar conteúdo com IA</p>
-            </div>
-            <ChevronRight size={18} className="text-[#c9a84c]/50" />
-          </Link>
-        )}
 
         {/* Tempo conectado */}
         <div className="bg-[#1a1a1a] rounded-2xl p-4 flex items-center">
