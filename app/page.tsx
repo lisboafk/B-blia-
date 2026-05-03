@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { Share2, Heart, BookOpen, Volume2, VolumeX } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import { getTodayDevotional } from '@/data/daily-devotionals'
-import { getMorningPrayer, getEveningPrayer } from '@/data/daily-prayers'
 
 const PT_MONTHS = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
 
@@ -259,7 +258,6 @@ export default function HojePage() {
   const bgIndex = getDayOfYear() % 7
 
   const devotional = getTodayDevotional()
-  const prayer = isMorning ? getMorningPrayer() : getEveningPrayer()
 
   // Verse data comes from today's devotional so Inspiração always explains the displayed verse
   const verseId = devotional.id
@@ -336,7 +334,7 @@ export default function HojePage() {
   }
 
   const speakPrayer = () => {
-    const text = `${prayer.title}. ${prayer.prayer}`
+    const text = `Oração. ${devotional.prayer}`
     const u = new SpeechSynthesisUtterance(text)
     u.lang = 'pt-BR'
     u.rate = 0.85
@@ -459,22 +457,16 @@ export default function HojePage() {
           <div className="bg-[#1a1a1a] rounded-2xl p-5 mb-6">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <span className="text-xl" aria-hidden="true">{prayer.period === 'manha' ? '☀️' : '🌙'}</span>
-                <h3 className="text-white font-bold text-2xl">{prayer.title}</h3>
+                <span className="text-xl" aria-hidden="true">{isMorning ? '☀️' : '🌙'}</span>
+                <h3 className="text-white font-bold text-2xl">{isMorning ? 'Oração da Manhã' : 'Oração da Noite'}</h3>
               </div>
               <button onClick={speakPrayer} aria-label="Ouvir oração"
                 className="p-2 rounded-xl border border-[#c9a84c]/30 text-[#c9a84c]/60 hover:text-[#c9a84c] hover:border-[#c9a84c]/60 transition-all active:scale-90">
                 <Volume2 size={16} />
               </button>
             </div>
-            <p className="text-parchment/80 text-xl leading-relaxed italic mb-3">
-              {prayer.prayer}
-            </p>
-            <p className="text-white/25 text-xs">
-              Baseada em{' '}
-              <Link href={`/bible/${prayer.book}/${prayer.chapter}`} className="text-white/35 underline underline-offset-2">
-                {prayer.reference}
-              </Link>
+            <p className="text-parchment/80 text-xl leading-relaxed italic">
+              {devotional.prayer}
             </p>
           </div>
         </div>
