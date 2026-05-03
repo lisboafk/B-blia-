@@ -41,7 +41,7 @@ const GENERATED_DEVOTIONALS: Devotional[] = (_gen.devotionals || []).map((d: any
 
 export function getTodayDevotional(): Devotional {
   const all = [...DEVOTIONALS, ...GENERATED_DEVOTIONALS]
-  return all[getWeekOfYear() % all.length]
+  return all[getDayOfYear() % all.length]
 }
 
 export function getAllDevotionals(): Devotional[] {

@@ -80,9 +80,9 @@ const BOOK_THEMES: Record<string, string> = {
 
 function getVerseImageUrl(book: string, chapter: number, verseNum: number): string {
   const theme = BOOK_THEMES[book] || 'ancient sacred biblical scene with divine golden light and scripture scrolls'
-  const prompt = `${theme}, masterpiece biblical fine art illustration, dramatic celestial golden light rays, ethereal sacred atmosphere, cinematic composition, ultra-detailed, 8K, no text, no letters`
+  const prompt = `${theme}, stunning digital oil painting, dramatic chiaroscuro lighting, rich warm golden tones, deep shadows and brilliant divine light, hyper-detailed brushwork, epic cinematic scale, baroque sacred art style, award-winning religious masterpiece, no text, no letters, no watermark`
   const seed = chapter * 97 + verseNum * 13
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1080&height=1080&seed=${seed}&nologo=true&model=flux`
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1080&height=1350&seed=${seed}&nologo=true&model=flux`
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
