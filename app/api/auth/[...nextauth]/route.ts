@@ -4,11 +4,14 @@ import GoogleProvider from 'next-auth/providers/google'
 const ADMIN_EMAIL = 'lisboafk@gmail.com'
 
 const handler = NextAuth({
+  secret: process.env.NEXTAUTH_SECRET || 'biblia-sagrada-secret-key-2024',
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [GoogleProvider({
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        })]
+      : []),
   ],
   callbacks: {
     async session({ session }) {
@@ -24,3 +27,4 @@ const handler = NextAuth({
 })
 
 export { handler as GET, handler as POST }
+
