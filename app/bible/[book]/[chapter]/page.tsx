@@ -1,7 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Loader, CheckSquare, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader, CheckSquare, X, Volume2, VolumeX } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import VerseCard from '@/components/VerseCard'
 import RevelationMode from '@/components/RevelationMode'
@@ -12,13 +12,6 @@ import { getBookById } from '@/data/bible-structure'
 
 interface Props {
   params: { book: string; chapter: string }
-}
-
-const COLOR_MAP: Record<string, string> = {
-  gold: 'verse-highlight-gold',
-  fire: 'verse-highlight-fire',
-  blue: 'verse-highlight-blue',
-  green: 'verse-highlight-green',
 }
 
 export default function ChapterPage({ params }: Props) {
@@ -38,17 +31,46 @@ export default function ChapterPage({ params }: Props) {
   const [selectedVerses, setSelectedVerses] = useState<Set<number>>(new Set())
   const [verseColors, setVerseColors] = useState<Record<number, string>>({})
 
+  // TTS audio
+  const [ttsPlaying, setTtsPlaying] = useState(false)
+  const [ttsCurrent, setTtsCurrent] = useState<number | null>(null)
+  const ttsRef = useRef(false)
+
   useEffect(() => {
     setLoading(true)
     setData(null)
     setRevealed(false)
     setSelectionMode(false)
     setSelectedVerses(new Set())
+    setVerseColors({})
+    setTtsPlaying(false)
+    setTtsCurrent(null)
+    ttsRef.current = false
+    window.speechSynthesis?.cancel()
 
     fetchChapter(book, chapterNum).then(d => {
       setData(d)
       setLoading(false)
       setTimeout(() => setRevealed(true), 80)
+
+      // Load persisted highlights for this chapter
+      if (d) {
+        const saved: Record<number, string> = {}
+        d.verses.forEach(v => {
+          const hl = localStorage.getItem(`hl-${book}-${chapterNum}-${v.verse}`)
+          if (hl) saved[v.verse] = hl
+        })
+        if (Object.keys(saved).length > 0) setVerseColors(saved)
+      }
+
+      // Track read chapters
+      const readKey = 'read-chapters'
+      const readChapters: string[] = JSON.parse(localStorage.getItem(readKey) || '[]')
+      const entry = `${book}-${chapterNum}`
+      if (!readChapters.includes(entry)) {
+        readChapters.push(entry)
+        localStorage.setItem(readKey, JSON.stringify(readChapters))
+      }
 
       const target = sessionStorage.getItem('scrollToVerse')
       if (target) {
@@ -60,6 +82,62 @@ export default function ChapterPage({ params }: Props) {
     })
   }, [book, chapterNum, retryKey])
 
+  // Scroll to current TTS verse
+  useEffect(() => {
+    if (ttsCurrent !== null) {
+      document.getElementById(`verse-${ttsCurrent}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [ttsCurrent])
+
+  // Stop TTS on unmount
+  useEffect(() => {
+    return () => { ttsRef.current = false; window.speechSynthesis?.cancel() }
+  }, [])
+
+  const playChapter = () => {
+    if (!data) return
+    if (ttsRef.current) {
+      window.speechSynthesis.cancel()
+      ttsRef.current = false
+      setTtsPlaying(false)
+      setTtsCurrent(null)
+      return
+    }
+
+    const verses = data.verses
+    let i = 0
+    ttsRef.current = true
+    setTtsPlaying(true)
+
+    const getVoice = () => {
+      const voices = window.speechSynthesis.getVoices()
+      return voices.find(v => v.lang.startsWith('pt')) ?? null
+    }
+
+    const speakNext = () => {
+      if (!ttsRef.current || i >= verses.length) {
+        ttsRef.current = false
+        setTtsPlaying(false)
+        setTtsCurrent(null)
+        return
+      }
+      const v = verses[i]
+      setTtsCurrent(v.verse)
+      const u = new SpeechSynthesisUtterance(v.text)
+      u.lang = 'pt-BR'
+      u.rate = 0.9
+      const voice = getVoice()
+      if (voice) u.voice = voice
+      u.onend = () => { i++; speakNext() }
+      u.onerror = () => { ttsRef.current = false; setTtsPlaying(false); setTtsCurrent(null) }
+      window.speechSynthesis.speak(u)
+    }
+
+    window.speechSynthesis.cancel()
+    // Delay slightly so voices list is populated
+    setTimeout(speakNext, 150)
+  }
+
   const toggleSelect = (v: number) => {
     setSelectedVerses(prev => {
       const next = new Set(prev)
@@ -70,7 +148,10 @@ export default function ChapterPage({ params }: Props) {
 
   const applyColor = (colorKey: string) => {
     const updates: Record<number, string> = { ...verseColors }
-    selectedVerses.forEach(v => { updates[v] = colorKey })
+    selectedVerses.forEach(v => {
+      updates[v] = colorKey
+      localStorage.setItem(`hl-${book}-${chapterNum}-${v}`, colorKey)
+    })
     setVerseColors(updates)
     setSelectedVerses(new Set())
     setSelectionMode(false)
@@ -99,13 +180,14 @@ export default function ChapterPage({ params }: Props) {
       {/* Header */}
       <div className="sticky top-0 z-40 bg-obsidian/95 backdrop-blur-sm border-b border-gold/10">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Link href="/bible" className="p-2 rounded-lg hover:bg-gold/10 transition-colors flex-shrink-0">
+          <Link href="/bible" aria-label="Voltar à lista de livros"
+            className="p-2 rounded-lg hover:bg-gold/10 transition-colors flex-shrink-0">
             <ChevronLeft size={20} className="text-gold" />
           </Link>
 
-          {/* Chapter card */}
           <button
             onClick={() => setShowPicker(true)}
+            aria-label={`Capítulo ${chapterNum}, toque para navegar`}
             className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gold/15 border border-gold/35 flex items-center justify-center active:scale-95 transition-all sacred-glow"
           >
             <span className="text-gold-light text-2xl font-bold leading-none" style={{ fontFamily: 'Cinzel, serif' }}>
@@ -120,18 +202,34 @@ export default function ChapterPage({ params }: Props) {
             <span className="text-parchment/40 text-xs mt-0.5">Toque para navegar</span>
           </button>
 
+          {/* TTS play button */}
+          {data && !selectionMode && (
+            <button
+              onClick={playChapter}
+              aria-label={ttsPlaying ? 'Parar leitura' : 'Ouvir capítulo'}
+              className={`p-2 rounded-xl border transition-all active:scale-90 ${
+                ttsPlaying
+                  ? 'bg-gold/20 border-gold/60 text-gold'
+                  : 'bg-transparent border-gold/20 text-gold/50 hover:border-gold/40 hover:text-gold/70'
+              }`}
+            >
+              {ttsPlaying ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            </button>
+          )}
+
           {/* Selection mode toggle */}
           {data && (
             selectionMode ? (
               <button onClick={() => { setSelectionMode(false); setSelectedVerses(new Set()) }}
+                aria-label="Cancelar seleção"
                 className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-fire/20 border border-fire/30 text-fire text-xs"
                 style={{ fontFamily: 'Cinzel, serif' }}>
                 <X size={12} /> Cancelar
               </button>
             ) : (
               <button onClick={() => setSelectionMode(true)}
-                className="p-2 rounded-xl hover:bg-gold/10 transition-colors"
-                title="Selecionar versículos">
+                aria-label="Selecionar versículos"
+                className="p-2 rounded-xl hover:bg-gold/10 transition-colors">
                 <CheckSquare size={18} className="text-gold/50" />
               </button>
             )
@@ -140,7 +238,23 @@ export default function ChapterPage({ params }: Props) {
         <div className="h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
       </div>
 
-      {/* Book opening animation + chapter number */}
+      {/* TTS indicator bar */}
+      {ttsPlaying && (
+        <div className="sticky top-[76px] z-30 bg-gold/10 border-b border-gold/20 px-4 py-2 flex items-center gap-2">
+          <div className="flex gap-1">
+            {[0,1,2].map(i => (
+              <span key={i} className="w-1 rounded-full bg-gold animate-bounce"
+                style={{ height: 14, animationDelay: `${i * 0.15}s` }} />
+            ))}
+          </div>
+          <span className="text-gold text-xs" style={{ fontFamily: 'Cinzel, serif' }}>
+            Lendo versículo {ttsCurrent}…
+          </span>
+          <button onClick={playChapter} className="ml-auto text-gold/60 text-xs">parar</button>
+        </div>
+      )}
+
+      {/* Book opening animation */}
       {!loading && (
         <div className="text-center py-6">
           <div className="relative inline-block">
@@ -158,10 +272,8 @@ export default function ChapterPage({ params }: Props) {
               {chapterNum}
             </span>
           </div>
-          <div
-            key={`line-${chapterNum}`}
-            className="h-px mx-auto bg-gradient-to-r from-transparent via-gold/50 to-transparent unfurl-line"
-          />
+          <div key={`line-${chapterNum}`}
+            className="h-px mx-auto bg-gradient-to-r from-transparent via-gold/50 to-transparent unfurl-line" />
         </div>
       )}
 
@@ -181,24 +293,21 @@ export default function ChapterPage({ params }: Props) {
 
       {/* Loading */}
       {loading && (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <div className="flex flex-col items-center justify-center py-20 gap-4" aria-live="polite" aria-label="Carregando capítulo">
           <div className="relative">
             <div className="w-10 h-10 rounded-full border-2 border-gold/20 border-t-gold animate-spin" />
             <div className="absolute inset-0 blur-md bg-gold/10 rounded-full" />
           </div>
-          <p className="text-parchment/40 text-sm" style={{ fontFamily: 'Cinzel, serif' }}>Carregando a Palavra...</p>
+          <p className="text-parchment/40 text-sm" style={{ fontFamily: 'Cinzel, serif' }}>Carregando a Palavra…</p>
         </div>
       )}
 
-      {/* Verses with staggered reveal */}
+      {/* Verses */}
       {data && (
-        <div className="pb-4">
+        <div className="pb-4" role="main" aria-label={`${bookData?.name || book} capítulo ${chapterNum}`}>
           {data.verses.map((v, idx) => (
-            <div
-              key={`${chapterNum}-${v.verse}`}
-              className="verse-reveal"
-              style={{ animationDelay: `${Math.min(idx * 40, 800)}ms` }}
-            >
+            <div key={`${chapterNum}-${v.verse}`} className="verse-reveal"
+              style={{ animationDelay: `${Math.min(idx * 40, 800)}ms` }}>
               <VerseCard
                 book={book}
                 chapter={chapterNum}
@@ -208,6 +317,7 @@ export default function ChapterPage({ params }: Props) {
                 selectionMode={selectionMode}
                 selected={selectedVerses.has(v.verse)}
                 externalHighlight={verseColors[v.verse] ?? null}
+                speakingVerse={ttsCurrent === v.verse}
                 onReveal={(verse, text) => setRevelation({ verse, text })}
                 onSelect={toggleSelect}
               />
@@ -219,19 +329,19 @@ export default function ChapterPage({ params }: Props) {
         </div>
       )}
 
-      {/* Chapter prev/next */}
+      {/* Prev/Next chapter */}
       {!selectionMode && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 pointer-events-none">
           <div className="flex justify-between pointer-events-auto">
             {prevChapter ? (
-              <Link href={`/bible/${book}/${prevChapter}`}
+              <Link href={`/bible/${book}/${prevChapter}`} aria-label={`Capítulo anterior: ${prevChapter}`}
                 className="flex items-center gap-1 px-4 py-2.5 rounded-xl bg-obsidian/90 border border-gold/20 text-gold text-xs backdrop-blur"
                 style={{ fontFamily: 'Cinzel, serif' }}>
                 <ChevronLeft size={14} /> Cap. {prevChapter}
               </Link>
             ) : <div />}
             {nextChapter ? (
-              <Link href={`/bible/${book}/${nextChapter}`}
+              <Link href={`/bible/${book}/${nextChapter}`} aria-label={`Próximo capítulo: ${nextChapter}`}
                 className="flex items-center gap-1 px-4 py-2.5 rounded-xl bg-obsidian/90 border border-gold/20 text-gold text-xs backdrop-blur"
                 style={{ fontFamily: 'Cinzel, serif' }}>
                 Cap. {nextChapter} <ChevronRight size={14} />
@@ -241,7 +351,6 @@ export default function ChapterPage({ params }: Props) {
         </div>
       )}
 
-      {/* Selection bar */}
       {selectionMode && (
         <SelectionBar
           selectedCount={selectedVerses.size}
@@ -251,7 +360,6 @@ export default function ChapterPage({ params }: Props) {
         />
       )}
 
-      {/* Pickers & modals */}
       {showPicker && bookData && data && (
         <NavigationPicker book={book} bookName={bookData.name} totalChapters={bookData.chapters}
           currentChapter={chapterNum} currentVerses={data.verses.length} onClose={() => setShowPicker(false)} />
