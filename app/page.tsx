@@ -278,8 +278,8 @@ export default function HojePage() {
 
   // Deterministic AI image URL for this verse
   const verseImageUrl = useMemo(
-    () => getVerseImageUrl(verse.book, verse.chapter, verse.verseNum || 1),
-    [verse.book, verse.chapter, verse.verseNum]
+    () => getVerseImageUrl(verse.book, verse.chapter, verse.verse || 1),
+    [verse.book, verse.chapter, verse.verse]
   )
 
   // Gradient fallback colors (shown while AI image loads)
