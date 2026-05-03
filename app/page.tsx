@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Share2, Heart, BookOpen } from 'lucide-react'
 import Navigation from '@/components/Navigation'
@@ -320,23 +320,8 @@ export default function HojePage() {
           </div>
         </div>
 
-        {/* Prayer section */}
+        {/* Inspiração */}
         <div className="px-4">
-          <div className="bg-[#1a1a1a] rounded-2xl p-5 mb-4">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xl">{prayer.period === 'manha' ? '☀️' : '🌙'}</span>
-              <h3 className="text-white font-semibold text-xl">{prayer.title}</h3>
-            </div>
-            <p className="text-parchment/80 text-xl leading-relaxed mb-3">
-              {verse.text}
-            </p>
-            <Link href={`/bible/${prayer.book}/${prayer.chapter}`}
-              className="text-[#4ade80] text-sm">
-              {prayer.reference}
-            </Link>
-          </div>
-
-          {/* Inspiração */}
           <div className="mb-4">
             <h3 className="text-white font-bold text-2xl mb-3">Inspiração</h3>
             <p className="text-parchment/70 text-xl leading-relaxed">
@@ -346,10 +331,17 @@ export default function HojePage() {
 
           {/* Oração */}
           <div className="bg-[#1a1a1a] rounded-2xl p-5 mb-6">
-            <h3 className="text-white font-bold text-2xl mb-3">Oração</h3>
-            <p className="text-parchment/80 text-xl leading-relaxed italic">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl">{prayer.period === 'manha' ? '☀️' : '🌙'}</span>
+              <h3 className="text-white font-bold text-2xl">{prayer.title}</h3>
+            </div>
+            <p className="text-parchment/80 text-xl leading-relaxed italic mb-3">
               {prayer.prayer}
             </p>
+            <Link href={`/bible/${prayer.book}/${prayer.chapter}`}
+              className="text-[#4ade80] text-sm">
+              {prayer.reference}
+            </Link>
           </div>
         </div>
 
