@@ -39,7 +39,7 @@ jobs:
 
       - name: Gerar conteúdo
         env:
-          GEMINI_API_KEY: AIzaSyBX5ALbq5L-UjcmSYGjjGr5Yu9XVaz3AFY
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PERIOD: ${{ steps.period.outputs.value }}
         run: node scripts/generate-content.mjs
 
