@@ -470,10 +470,12 @@ export default function HojePage() {
             <p className="text-parchment/80 text-xl leading-relaxed italic mb-3">
               {prayer.prayer}
             </p>
-            <Link href={`/bible/${prayer.book}/${prayer.chapter}`}
-              className="text-[#4ade80] text-sm">
-              {prayer.reference}
-            </Link>
+            <p className="text-white/25 text-xs">
+              Baseada em{' '}
+              <Link href={`/bible/${prayer.book}/${prayer.chapter}`} className="text-white/35 underline underline-offset-2">
+                {prayer.reference}
+              </Link>
+            </p>
           </div>
         </div>
 
