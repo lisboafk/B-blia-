@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Sparkles, BookOpen, Sun, Moon, Trash2, Plus, ChevronLeft, Check, RefreshCw, LogOut } from 'lucide-react'
 
@@ -16,6 +17,7 @@ type ContentType = 'devotional' | 'verse' | 'prayer'
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const isAdmin = (session?.user as { isAdmin?: boolean })?.isAdmin === true
+  const router = useRouter()
 
   const [type, setType] = useState<ContentType>('devotional')
   const [theme, setTheme] = useState('')
@@ -29,6 +31,12 @@ export default function AdminPage() {
     const raw = localStorage.getItem('admin-content')
     if (raw) { try { setSaved(JSON.parse(raw)) } catch {} }
   }, [])
+
+  useEffect(() => {
+    if (status !== 'loading' && session && !isAdmin) {
+      router.push('/profile')
+    }
+  }, [status, session, isAdmin, router])
 
   const generate = async () => {
     setLoading(true); setError(''); setPreview(null)
@@ -111,21 +119,11 @@ export default function AdminPage() {
     )
   }
 
-  // Signed in but not admin
-  if (!isAdmin) {
+  // Signed in but not admin — redirect handled in useEffect
+  if (session && !isAdmin) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center px-8 text-center">
-        <span className="text-5xl mb-4">🚫</span>
-        <h1 className="text-white font-bold text-xl mb-2">Acesso negado</h1>
-        <p className="text-white/50 text-sm mb-6">
-          Logado como <strong className="text-white">{session.user?.email}</strong><br/>
-          Esta conta não tem permissão de administrador.
-        </p>
-        <button onClick={() => signOut({ callbackUrl: '/admin' })}
-          className="flex items-center gap-2 text-red-400 border border-red-400/30 px-4 py-2.5 rounded-xl text-sm">
-          <LogOut size={15} /> Sair
-        </button>
-        <Link href="/" className="mt-4 text-white/30 text-sm">← Voltar ao app</Link>
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <RefreshCw size={24} className="text-[#c9a84c] animate-spin" />
       </div>
     )
   }

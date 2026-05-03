@@ -14,8 +14,8 @@ const DATA_FILE = join(ROOT, 'data', 'generated.json')
 const GEMINI_KEY = process.env.GEMINI_API_KEY
 
 if (!GEMINI_KEY) {
-  console.error('❌  GEMINI_API_KEY não definida')
-  process.exit(1)
+  console.warn('⚠️  GEMINI_API_KEY não definida — adicione o secret no GitHub Actions para gerar conteúdo')
+  process.exit(0)
 }
 
 const PERIOD = process.env.PERIOD || (new Date().getUTCHours() < 12 ? 'manha' : 'noite')
