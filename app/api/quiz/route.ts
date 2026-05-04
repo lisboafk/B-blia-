@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 export const revalidate = 86400 // 24 hours — one new quiz per day
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY
-const MODEL = 'gemini-2.5-flash'
+const MODEL = 'gemini-2.0-flash'
 
 interface Question { q: string; options: string[]; correct: number }
 

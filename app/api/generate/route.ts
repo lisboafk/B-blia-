@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY
-const MODEL = 'gemini-2.5-flash'
+const MODEL = 'gemini-2.0-flash'
 
 async function callGemini(prompt: string, temperature = 0.7): Promise<string> {
   const res = await fetch(
