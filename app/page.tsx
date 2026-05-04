@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Share2, Heart, BookOpen, Volume2, VolumeX } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import { getTodayDevotional } from '@/data/daily-devotionals'
-
+import { getMorningPrayer, getEveningPrayer } from '@/data/daily-prayers'
 const PT_MONTHS = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
 
 // ─── AI image via Pollinations (free, no key needed) ───────────────────────
@@ -79,7 +79,7 @@ const BOOK_THEMES: Record<string, string> = {
 
 function getVerseImageUrl(book: string, chapter: number, verseNum: number): string {
   const theme = BOOK_THEMES[book] || 'ancient sacred biblical scene with divine golden light and scripture scrolls'
-  const prompt = `${theme}, stunning digital oil painting, dramatic chiaroscuro lighting, rich warm golden tones, deep shadows and brilliant divine light, hyper-detailed brushwork, epic cinematic scale, baroque sacred art style, award-winning religious masterpiece, no text, no letters, no watermark`
+  const prompt = `${theme}, Gustave Doré biblical engraving style reimagined as photorealistic oil painting, extreme Rembrandt chiaroscuro with blinding divine light piercing deep shadows, overwhelming sense of the holy and transcendent, rich Renaissance pigments gold and crimson and midnight blue, faces filled with awe and reverence, hyper-detailed museum masterpiece, cinematic wide angle, no text no letters no watermark`
   const seed = chapter * 97 + verseNum * 13
   return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1080&height=1350&seed=${seed}&nologo=true&model=flux`
 }
@@ -258,6 +258,7 @@ export default function HojePage() {
   const bgIndex = getDayOfYear() % 7
 
   const devotional = getTodayDevotional()
+  const prayer = isMorning ? getMorningPrayer() : getEveningPrayer()
 
   // Verse data comes from today's devotional so Inspiração always explains the displayed verse
   const verseId = devotional.id
@@ -334,7 +335,7 @@ export default function HojePage() {
   }
 
   const speakPrayer = () => {
-    const text = `Oração. ${devotional.prayer}`
+    const text = `${prayer.title}. ${prayer.prayer}`
     const u = new SpeechSynthesisUtterance(text)
     u.lang = 'pt-BR'
     u.rate = 0.85
@@ -466,7 +467,7 @@ export default function HojePage() {
               </button>
             </div>
             <p className="text-parchment/80 text-xl leading-relaxed italic">
-              {devotional.prayer}
+              {prayer.prayer}
             </p>
           </div>
         </div>
