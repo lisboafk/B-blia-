@@ -257,11 +257,22 @@ export default function HojePage() {
   const isMorning = hour >= 5 && hour < 18
   const bgIndex = getDayOfYear() % 7
 
-  const devotional = getTodayDevotional()
-  const prayer = isMorning ? getMorningPrayer() : getEveningPrayer()
+  // Static fallback content (used immediately while AI content loads)
+  const staticDevotional = getTodayDevotional()
+  const staticPrayer = isMorning ? getMorningPrayer() : getEveningPrayer()
+
+  // AI-generated content state (replaces static when available)
+  const [aiContent, setAiContent] = useState<{
+    devotional: typeof staticDevotional & { reflection: string }
+    morningPrayer: { title: string; prayer: string }
+    eveningPrayer: { title: string; prayer: string }
+  } | null>(null)
+
+  const devotional = aiContent?.devotional ?? staticDevotional
+  const prayer = aiContent ? (isMorning ? aiContent.morningPrayer : aiContent.eveningPrayer) : staticPrayer
 
   // Verse data comes from today's devotional so Inspiração always explains the displayed verse
-  const verseId = devotional.id
+  const verseId = devotional.id ?? staticDevotional.id
   const verseText = devotional.verseText
   const verseReference = devotional.reference
   const verseBook = devotional.book
@@ -290,6 +301,24 @@ export default function HojePage() {
     ['#12001a','#3a0860'],
   ]
   const [g1, g2] = GRADS[bgIndex % GRADS.length]
+
+  // Fetch AI-generated daily content (cached 12h on Vercel)
+  useEffect(() => {
+    const cacheKey = `ai-content-day-${getDayOfYear()}-${isMorning ? 'm' : 'n'}`
+    const cached = sessionStorage.getItem(cacheKey)
+    if (cached) {
+      try { setAiContent(JSON.parse(cached)); return } catch {}
+    }
+    fetch('/api/daily-content')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.devotional) {
+          setAiContent(data)
+          sessionStorage.setItem(cacheKey, JSON.stringify(data))
+        }
+      })
+      .catch(() => {}) // silently fall back to static content
+  }, [isMorning])
 
   useEffect(() => {
     const shown = sessionStorage.getItem('splash-shown')

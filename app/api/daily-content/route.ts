@@ -1,0 +1,124 @@
+import { NextResponse } from 'next/server'
+
+export const revalidate = 43200 // 12 hours — regenerates at 6h and 18h UTC naturally
+
+const GEMINI_KEY = process.env.GEMINI_API_KEY
+const MODEL = 'gemini-2.5-flash'
+
+async function callGemini(prompt: string): Promise<string> {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.88, maxOutputTokens: 2048 }
+      })
+    }
+  )
+  if (!res.ok) throw new Error(`Gemini ${res.status}`)
+  const data = await res.json()
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+}
+
+function parseJSON(raw: string) {
+  const match = raw.match(/```(?:json)?\s*([\s\S]*?)```/) || raw.match(/(\{[\s\S]*\})/)
+  if (match) { try { return JSON.parse(match[1].trim()) } catch {} }
+  try { return JSON.parse(raw.trim()) } catch {}
+  return null
+}
+
+function dayOfYear() {
+  const now = new Date()
+  return Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
+}
+
+async function generateDevotional() {
+  const themes = [
+    'Graça Irresistível', 'Perseverança dos Santos', 'Providência Divina',
+    'Justificação pela Fé', 'Soberania de Deus', 'União com Cristo',
+    'Santificação pelo Espírito', 'Segurança da Salvação', 'Eleição Incondicional',
+    'Expiação Definida', 'Regeneração pela Fé', 'Glorificação Futura',
+    'Oração e Dependência de Deus', 'O Evangelho da Graça', 'Fidelidade de Deus',
+    'Cristo nossa Justiça', 'A Palavra de Deus', 'Comunhão com o Espírito Santo',
+    'O Amor de Deus', 'Confiança na Tribulação', 'A Igreja de Cristo',
+  ]
+  const theme = themes[dayOfYear() % themes.length]
+  const raw = await callGemini(`Você é um teólogo reformado. Crie um devocional bíblico em português brasileiro sobre: "${theme}".
+Responda SOMENTE com JSON válido:
+{
+  "title": "título curto (máx 6 palavras)",
+  "theme": "${theme}",
+  "reference": "Livro capítulo:versículo",
+  "book": "identificador em minúsculas sem acentos (ex: joao, genesis, salmos, romanos)",
+  "chapter": 1,
+  "verseNum": 1,
+  "verseText": "texto completo do versículo em português Almeida Revista e Corrigida",
+  "reflection": "reflexão devocional de 3 parágrafos curtos (~200 palavras), reformada, aplicada ao cristão de hoje",
+  "prayer": "oração intimista de 4-5 linhas terminando com Amém"
+}`)
+  const obj = parseJSON(raw)
+  if (!obj?.title || !obj?.reflection) throw new Error('Devotional JSON inválido')
+  return {
+    id: `ai-d-${dayOfYear()}`,
+    title: String(obj.title),
+    theme: String(obj.theme || theme),
+    reference: String(obj.reference || ''),
+    book: String(obj.book || 'salmos'),
+    chapter: Number(obj.chapter) || 1,
+    verse: Number(obj.verseNum) || 1,
+    verseText: String(obj.verseText || ''),
+    reflection: String(obj.reflection),
+    prayer: String(obj.prayer || ''),
+  }
+}
+
+async function generatePrayer(period: 'manha' | 'noite') {
+  const label = period === 'manha' ? 'manhã' : 'noite'
+  const hints = period === 'manha'
+    ? 'Salmos 5:3, Lamentações 3:22-23, Josué 1:9'
+    : 'Salmos 4:8, Filipenses 4:7, João 14:27'
+  const raw = await callGemini(`Você é um pastor reformado. Escreva uma oração de ${label} em português brasileiro para um cristão.
+A oração deve ser intimista, confessional, cheia de Deus, terminando com "Amém."
+Inspire-se (sem citar) em: ${hints}
+Responda SOMENTE com JSON válido:
+{
+  "title": "Oração da ${period === 'manha' ? 'Manhã' : 'Noite'}",
+  "prayer": "texto da oração com 5-7 linhas, íntimo e profundo, terminando com Amém."
+}`)
+  const obj = parseJSON(raw)
+  if (!obj?.prayer) throw new Error('Prayer JSON inválido')
+  return {
+    period,
+    title: String(obj.title || `Oração da ${period === 'manha' ? 'Manhã' : 'Noite'}`),
+    prayer: String(obj.prayer),
+  }
+}
+
+export async function GET() {
+  if (!GEMINI_KEY) {
+    return NextResponse.json({ error: 'GEMINI_API_KEY não configurada' }, { status: 503 })
+  }
+
+  try {
+    const [devotional, morningPrayer, eveningPrayer] = await Promise.all([
+      generateDevotional(),
+      generatePrayer('manha'),
+      generatePrayer('noite'),
+    ])
+
+    return NextResponse.json({
+      devotional,
+      morningPrayer,
+      eveningPrayer,
+      generatedAt: new Date().toISOString(),
+      day: dayOfYear(),
+    })
+  } catch (e: unknown) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : String(e) },
+      { status: 500 }
+    )
+  }
+}
