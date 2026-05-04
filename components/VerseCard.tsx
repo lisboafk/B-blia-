@@ -1,6 +1,6 @@
 'use client'
 import { useState, useCallback } from 'react'
-import { Heart, Copy, Volume2, ChevronDown, Check } from 'lucide-react'
+import { Heart, Copy, Volume2, Share2, ChevronDown, Check } from 'lucide-react'
 import { getCommentary } from '@/data/reformed-commentary'
 
 interface VerseCardProps {
@@ -82,6 +82,19 @@ export default function VerseCard({
     setTimeout(() => setCopied(false), 1800)
   }, [text, book, chapter, verse])
 
+  const shareVerse = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    const bookLabel = book.charAt(0).toUpperCase() + book.slice(1)
+    const content = `"${text}"\n— ${bookLabel} ${chapter}:${verse}`
+    if (navigator.share) {
+      navigator.share({ text: content }).catch(() => {})
+    } else {
+      navigator.clipboard.writeText(content)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    }
+  }, [text, book, chapter, verse])
+
   const speakVerse = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
     if (speaking) { window.speechSynthesis.cancel(); setSpeaking(false); return }
@@ -109,7 +122,7 @@ export default function VerseCard({
       id={`verse-${verse}`}
       role="article"
       aria-label={`Versículo ${verse}`}
-      className={`relative px-4 py-2.5 cursor-pointer transition-all duration-150 rounded-lg mx-2 my-0.5 ${
+      className={`relative px-4 py-2.5 cursor-pointer transition-all duration-150 rounded-lg mx-2 my-0.5 select-none ${
         speakingVerse
           ? 'bg-gold/10 ring-1 ring-gold/50 border-l-2 border-gold'
           : selected
@@ -185,6 +198,11 @@ export default function VerseCard({
               copied ? 'bg-green-400/20 border-green-400 text-green-400' : 'bg-obsidian/80 border-gold/20 text-parchment/50'
             }`}>
             <Copy size={12} />
+          </button>
+
+          <button onClick={shareVerse} aria-label="Compartilhar versículo"
+            className="p-1.5 rounded-lg border transition-all active:scale-90 bg-obsidian/80 border-gold/20 text-parchment/50">
+            <Share2 size={12} />
           </button>
         </div>
       )}

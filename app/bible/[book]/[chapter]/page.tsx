@@ -53,7 +53,6 @@ export default function ChapterPage({ params }: Props) {
       setLoading(false)
       setTimeout(() => setRevealed(true), 80)
 
-      // Load persisted highlights for this chapter
       if (d) {
         const saved: Record<number, string> = {}
         d.verses.forEach(v => {
@@ -63,7 +62,6 @@ export default function ChapterPage({ params }: Props) {
         if (Object.keys(saved).length > 0) setVerseColors(saved)
       }
 
-      // Track read chapters
       const readKey = 'read-chapters'
       const readChapters: string[] = JSON.parse(localStorage.getItem(readKey) || '[]')
       const entry = `${book}-${chapterNum}`
@@ -82,14 +80,12 @@ export default function ChapterPage({ params }: Props) {
     })
   }, [book, chapterNum, retryKey])
 
-  // Scroll to current TTS verse
   useEffect(() => {
     if (ttsCurrent !== null) {
       document.getElementById(`verse-${ttsCurrent}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
   }, [ttsCurrent])
 
-  // Stop TTS on unmount
   useEffect(() => {
     return () => { ttsRef.current = false; window.speechSynthesis?.cancel() }
   }, [])
@@ -134,7 +130,6 @@ export default function ChapterPage({ params }: Props) {
     }
 
     window.speechSynthesis.cancel()
-    // Delay slightly so voices list is populated
     setTimeout(speakNext, 150)
   }
 
@@ -172,14 +167,42 @@ export default function ChapterPage({ params }: Props) {
     setSelectionMode(false)
   }
 
+  const shareSelected = () => {
+    if (!data) return
+    const sorted = Array.from(selectedVerses).sort((a, b) => a - b)
+    const verses = sorted
+      .map(v => data.verses.find(x => x.verse === v))
+      .filter(Boolean) as { verse: number; text: string }[]
+    if (verses.length === 0) return
+
+    const bookLabel = bookData?.name || (book.charAt(0).toUpperCase() + book.slice(1))
+    const textBody = verses.map(v => `${v.verse} ${v.text}`).join('\n')
+    const ref = verses.length === 1
+      ? `${bookLabel} ${chapterNum}:${verses[0].verse}`
+      : `${bookLabel} ${chapterNum}:${verses[0].verse}-${verses[verses.length - 1].verse}`
+    const content = `"${textBody}"\n— ${ref}`
+
+    if (navigator.share) {
+      navigator.share({ text: content }).catch(() => {})
+    } else {
+      navigator.clipboard.writeText(content)
+    }
+    setSelectedVerses(new Set())
+    setSelectionMode(false)
+  }
+
   const prevChapter = chapterNum > 1 ? chapterNum - 1 : null
   const nextChapter = bookData && chapterNum < bookData.chapters ? chapterNum + 1 : null
 
+  // Header height: py-3 (24px) + h-14 button (56px) + 1px divider ≈ 81px
+  const HEADER_H = 81
+
   return (
-    <div className="min-h-screen pb-32">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-obsidian/95 backdrop-blur-sm border-b border-gold/10">
-        <div className="flex items-center gap-3 px-4 py-3">
+    <div className="min-h-screen pb-32 select-none">
+
+      {/* Header — fixed so it stays visible while scrolling */}
+      <div className="fixed top-0 inset-x-0 z-40 bg-obsidian/95 backdrop-blur-sm border-b border-gold/10">
+        <div className="flex items-center gap-3 px-4 py-3 max-w-[430px] mx-auto">
           <Link href="/bible" aria-label="Voltar à lista de livros"
             className="p-2 rounded-lg hover:bg-gold/10 transition-colors flex-shrink-0">
             <ChevronLeft size={20} className="text-gold" />
@@ -238,9 +261,12 @@ export default function ChapterPage({ params }: Props) {
         <div className="h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
       </div>
 
+      {/* Spacer for fixed header */}
+      <div style={{ height: HEADER_H }} />
+
       {/* TTS indicator bar */}
       {ttsPlaying && (
-        <div className="sticky top-[76px] z-30 bg-gold/10 border-b border-gold/20 px-4 py-2 flex items-center gap-2">
+        <div className="sticky top-[81px] z-30 bg-gold/10 border-b border-gold/20 px-4 py-2 flex items-center gap-2">
           <div className="flex gap-1">
             {[0,1,2].map(i => (
               <span key={i} className="w-1 rounded-full bg-gold animate-bounce"
@@ -356,6 +382,7 @@ export default function ChapterPage({ params }: Props) {
           selectedCount={selectedVerses.size}
           onApplyColor={applyColor}
           onFavoriteAll={favoriteAll}
+          onShareAll={shareSelected}
           onCancel={() => { setSelectionMode(false); setSelectedVerses(new Set()) }}
         />
       )}

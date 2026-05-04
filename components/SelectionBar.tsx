@@ -1,21 +1,22 @@
 'use client'
-import { Heart, X, Check } from 'lucide-react'
+import { Heart, X, Check, Share2 } from 'lucide-react'
 
 const COLORS = [
-  { key: 'gold', label: 'Dourado', bg: 'bg-gold', border: 'border-gold', cls: 'verse-highlight-gold' },
-  { key: 'fire', label: 'Fogo', bg: 'bg-fire', border: 'border-fire', cls: 'verse-highlight-fire' },
-  { key: 'blue', label: 'Azul', bg: 'bg-blue-400', border: 'border-blue-400', cls: 'verse-highlight-blue' },
-  { key: 'green', label: 'Verde', bg: 'bg-green-400', border: 'border-green-400', cls: 'verse-highlight-green' },
+  { key: 'gold', label: 'Dourado', bg: 'bg-gold', border: 'border-gold' },
+  { key: 'fire', label: 'Fogo', bg: 'bg-fire', border: 'border-fire' },
+  { key: 'blue', label: 'Azul', bg: 'bg-blue-400', border: 'border-blue-400' },
+  { key: 'green', label: 'Verde', bg: 'bg-green-400', border: 'border-green-400' },
 ]
 
 interface Props {
   selectedCount: number
   onApplyColor: (colorKey: string) => void
   onFavoriteAll: () => void
+  onShareAll: () => void
   onCancel: () => void
 }
 
-export default function SelectionBar({ selectedCount, onApplyColor, onFavoriteAll, onCancel }: Props) {
+export default function SelectionBar({ selectedCount, onApplyColor, onFavoriteAll, onShareAll, onCancel }: Props) {
   return (
     <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-3 z-50 pointer-events-none">
       <div className="pointer-events-auto rounded-2xl bg-obsidian-light border border-gold/30 backdrop-blur-xl overflow-hidden">
@@ -47,10 +48,17 @@ export default function SelectionBar({ selectedCount, onApplyColor, onFavoriteAl
             >
               <Heart size={14} className="text-fire" />
             </button>
+            <button
+              onClick={onShareAll}
+              disabled={selectedCount === 0}
+              className="flex-1 py-2.5 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center active:scale-95 transition-all disabled:opacity-30"
+            >
+              <Share2 size={14} className="text-blue-400" />
+            </button>
           </div>
-          <div className="flex justify-between mt-1 px-1">
-            {['Dourado','Fogo','Azul','Verde','Favorito'].map(l => (
-              <span key={l} className="text-parchment/30 text-[9px] text-center" style={{ fontFamily: 'Cinzel, serif' }}>{l}</span>
+          <div className="flex justify-between mt-1 px-0.5">
+            {['Dourado','Fogo','Azul','Verde','Favorito','Compartilhar'].map(l => (
+              <span key={l} className="text-parchment/30 text-[9px] text-center flex-1" style={{ fontFamily: 'Cinzel, serif' }}>{l}</span>
             ))}
           </div>
         </div>

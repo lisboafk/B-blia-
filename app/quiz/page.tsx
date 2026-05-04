@@ -70,7 +70,26 @@ function speakText(text: string) {
 export default function QuizPage() {
   const now = new Date()
   const weekVerse = getTodayVerse()
-  const todayQuestions = getTodayQuestions()
+
+  const [aiQuestions, setAiQuestions] = useState<Question[] | null>(null)
+  const todayQuestions = aiQuestions ?? getTodayQuestions()
+
+  useEffect(() => {
+    const cacheKey = `ai-quiz-day-${getDayOfYear()}`
+    const cached = sessionStorage.getItem(cacheKey)
+    if (cached) {
+      try { setAiQuestions(JSON.parse(cached)); return } catch {}
+    }
+    fetch('/api/quiz')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (Array.isArray(data?.questions) && data.questions.length > 0) {
+          setAiQuestions(data.questions)
+          sessionStorage.setItem(cacheKey, JSON.stringify(data.questions))
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const [phase, setPhase] = useState<'puzzle' | 'quiz' | 'done'>('puzzle')
   const [qIndex, setQIndex] = useState(0)

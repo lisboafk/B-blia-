@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ChevronRight, BookOpen, Bell, Trash2, Settings, RefreshCw } from 'lucide-react'
+import { ChevronRight, BookOpen, Trash2 } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 
 const BOOK_LABELS: Record<string, { name: string; chapters: number }> = {
@@ -103,26 +103,6 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-          <ChevronRight size={18} className="text-white/20 ml-2 shrink-0" />
-        </div>
-
-        {/* Marcas */}
-        <div className="bg-[#1a1a1a] rounded-2xl p-4">
-          <h2 className="text-white font-semibold text-base mb-3">Marcas</h2>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { label: 'Destaques', emoji: '✏️', href: '/favorites' },
-              { label: 'Notas', emoji: '📝', href: '/favorites' },
-              { label: 'Marcadores', emoji: '🔖', href: '/favorites' },
-              { label: 'Favoritos', emoji: '💙', href: '/favorites' },
-            ].map(item => (
-              <Link key={item.label} href={item.href}
-                className="flex items-center gap-2.5 bg-[#111] rounded-xl p-3 active:bg-[#252525] transition-colors">
-                <span className="text-xl">{item.emoji}</span>
-                <span className="text-white/80 text-sm font-medium">{item.label}</span>
-              </Link>
-            ))}
-          </div>
         </div>
 
         {/* Progresso */}
@@ -152,7 +132,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Favoritos quick count */}
+        {/* Favoritos */}
         <Link href="/favorites"
           className="bg-[#1a1a1a] rounded-2xl p-4 flex items-center gap-3 active:bg-[#252525] transition-colors">
           <span className="text-2xl">⭐</span>
@@ -163,30 +143,12 @@ export default function ProfilePage() {
           <ChevronRight size={18} className="text-white/30" />
         </Link>
 
-        {/* Mais Recursos */}
-        <div className="bg-[#1a1a1a] rounded-2xl overflow-hidden">
-          <h2 className="text-white font-semibold text-base px-4 pt-4 pb-2">Mais Recursos</h2>
-
-          {[
-            { icon: <Bell size={18} className="text-white/50" />, label: 'Notificações' },
-            { icon: <RefreshCw size={18} className="text-white/50" />, label: 'Sincronizar dados' },
-            { icon: <Settings size={18} className="text-white/50" />, label: 'Definições' },
-          ].map(item => (
-            <div key={item.label} className="flex items-center justify-between px-4 py-3.5 border-t border-[#2a2a2a]">
-              <div className="flex items-center gap-3">
-                {item.icon}
-                <span className="text-white/70 text-sm">{item.label}</span>
-              </div>
-              <ChevronRight size={18} className="text-white/20" />
-            </div>
-          ))}
-
-          <button onClick={clearCache}
-            className="flex items-center gap-3 w-full px-4 py-3.5 border-t border-[#2a2a2a] active:bg-[#2a2a2a] transition-colors">
-            <Trash2 size={18} className="text-white/50" />
-            <span className="text-white/70 text-sm">{cleared ? '✓ Cache limpo' : 'Limpar Cache'}</span>
-          </button>
-        </div>
+        {/* Limpar Cache */}
+        <button onClick={clearCache}
+          className="w-full bg-[#1a1a1a] rounded-2xl p-4 flex items-center gap-3 active:bg-[#252525] transition-colors">
+          <Trash2 size={18} className="text-white/40" />
+          <span className="text-white/50 text-sm">{cleared ? '✓ Cache limpo' : 'Limpar cache de leitura'}</span>
+        </button>
 
       </div>
 
