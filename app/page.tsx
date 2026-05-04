@@ -103,7 +103,7 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines
 }
 
-async function shareVerseAsImage(text: string, reference: string, imageUrl: string) {
+async function shareVerseAsImage(text: string, reference: string, imageUrl: string, caption: string) {
   const canvas = document.createElement('canvas')
   canvas.width = 1080; canvas.height = 1080
   const ctx = canvas.getContext('2d')!
@@ -160,7 +160,7 @@ async function shareVerseAsImage(text: string, reference: string, imageUrl: stri
   const blob = await new Promise<Blob>(r => canvas.toBlob(b => r(b!), 'image/jpeg', 0.93))
   const file = new File([blob], 'versiculo.jpg', { type: 'image/jpeg' })
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
-    await navigator.share({ files: [file], text: `"${text}"\n— ${reference}` })
+    await navigator.share({ files: [file], text: `${caption}\n\n— ${reference}` })
   } else {
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'versiculo.jpg'; a.click()
   }
@@ -312,7 +312,7 @@ export default function HojePage() {
   }
 
   const handleShare = async () => {
-    await shareVerseAsImage(verseText, verseReference, verseImageUrl)
+    await shareVerseAsImage(verseText, verseReference, verseImageUrl, devotional.reflection)
     const next = shareCount + 1
     setShareCount(next)
     localStorage.setItem(`share-${verseId}`, String(next))
