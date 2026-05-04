@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   Sparkles, Sun, Moon, Trash2, ChevronLeft, Check, Download,
   BarChart2, MessageSquare, Calendar, LogOut, Heart, Share2,
-  BookOpen, Send, Loader, ExternalLink
+  BookOpen, Send, Loader, ExternalLink, PenLine, Upload, Clock
 } from 'lucide-react'
 
 type Tab = 'painel' | 'gerar' | 'chat' | 'temas'
@@ -101,26 +101,34 @@ function GerarTab() {
   const [type, setType] = useState<ContentType>('devotional')
   const [theme, setTheme] = useState('')
   const [period, setPeriod] = useState<'manha' | 'noite'>('manha')
-  const [imageStyle, setImageStyle] = useState('bíblico épico Gustave Doré')
+  const [imagePrompt, setImagePrompt] = useState('')
   const [loading, setLoading] = useState(false)
+  const [publishing, setPublishing] = useState(false)
   const [error, setError] = useState('')
+  const [publishMsg, setPublishMsg] = useState('')
   const [preview, setPreview] = useState<Record<string, unknown> | null>(null)
   const [imgUrl, setImgUrl] = useState('')
-  const [saved, setSaved] = useState<GeneratedItem[]>([])
+  const [imgLoaded, setImgLoaded] = useState(false)
+  const [manualMode, setManualMode] = useState(false)
+  const [manualText, setManualText] = useState('')
+  const [scheduleDate, setScheduleDate] = useState('')
+  const [showSchedule, setShowSchedule] = useState(false)
+  const [published, setPublished] = useState<GeneratedItem[]>([])
 
   useEffect(() => {
-    const raw = localStorage.getItem('admin-content')
-    if (raw) { try { setSaved(JSON.parse(raw)) } catch {} }
+    const raw = localStorage.getItem('admin-published')
+    if (raw) { try { setPublished(JSON.parse(raw)) } catch {} }
   }, [])
 
   const generate = async () => {
-    setLoading(true); setError(''); setPreview(null); setImgUrl('')
+    setLoading(true); setError(''); setPreview(null); setImgUrl(''); setImgLoaded(false)
     try {
       if (type === 'image') {
-        const prompt = encodeURIComponent(`${theme || imageStyle}, photorealistic oil painting, extreme Rembrandt chiaroscuro, blinding divine light, rich Renaissance pigments, no text no watermark`)
-        const url = `https://image.pollinations.ai/prompt/${prompt}?width=1080&height=1350&seed=${Date.now() % 9999}&nologo=true&model=flux`
+        const promptText = imagePrompt.trim() || 'cena bíblica épica Gustave Doré chiaroscuro divino'
+        const encoded = encodeURIComponent(`${promptText}, oil painting style, divine light, Rembrandt chiaroscuro, no text no watermark`)
+        const url = `https://image.pollinations.ai/prompt/${encoded}?width=1080&height=1350&seed=${Date.now() % 9999}&nologo=true&model=flux`
         setImgUrl(url)
-        setPreview({ imageUrl: url, prompt: theme || imageStyle })
+        setPreview({ imageUrl: url, prompt: promptText })
         setLoading(false); return
       }
       const res = await fetch('/api/generate', {
@@ -129,7 +137,7 @@ function GerarTab() {
         body: JSON.stringify({ type, theme: theme.trim() || undefined, period })
       })
       const json = await res.json()
-      if (!res.ok) { setError(json.error || 'Erro'); return }
+      if (!res.ok) { setError(json.error || 'Erro ao gerar'); return }
       setPreview(json.data)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Erro')
@@ -138,32 +146,56 @@ function GerarTab() {
     }
   }
 
-  const approve = () => {
-    if (!preview) return
-    const item: GeneratedItem = {
-      id: String(preview.id || Date.now()), type, data: preview, generatedAt: new Date().toISOString()
+  const buildManualPreview = (): Record<string, unknown> | null => {
+    const text = manualText.trim()
+    if (!text) return null
+    if (type === 'devotional') {
+      const lines = text.split('\n')
+      return { id: `manual-d-${Date.now()}`, title: lines[0] || 'Devocional', content: text, prayer: '', generatedAt: new Date().toISOString() }
     }
-    const next = [item, ...saved].slice(0, 50)
-    setSaved(next); localStorage.setItem('admin-content', JSON.stringify(next))
-    setPreview(null); setTheme('')
+    if (type === 'verse') return { id: `manual-v-${Date.now()}`, text, reference: theme || '', generatedAt: new Date().toISOString() }
+    if (type === 'prayer') return { id: `manual-p-${Date.now()}`, prayer: text, period, title: `Oração da ${period === 'manha' ? 'Manhã' : 'Noite'}`, generatedAt: new Date().toISOString() }
+    return null
   }
 
-  const remove = (id: string) => {
-    const next = saved.filter(s => s.id !== id)
-    setSaved(next); localStorage.setItem('admin-content', JSON.stringify(next))
+  const doPublish = async (scheduledFor?: string) => {
+    const data = manualMode ? buildManualPreview() : preview
+    if (!data) return
+    setPublishing(true); setError(''); setPublishMsg('')
+    try {
+      const publishType = type === 'prayer' ? `prayer_${period}` : type
+      const token = localStorage.getItem('admin-token') || ''
+      const res = await fetch('/api/admin/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+        body: JSON.stringify({ type: publishType, data, scheduledFor })
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setError(json.error || 'Erro ao publicar')
+        return
+      }
+      const item: GeneratedItem = { id: String(data.id || Date.now()), type, data, generatedAt: new Date().toISOString() }
+      const next = [item, ...published].slice(0, 30)
+      setPublished(next); localStorage.setItem('admin-published', JSON.stringify(next))
+      setPublishMsg(scheduledFor ? `Agendado para ${scheduledFor}` : 'Publicado para todos os usuários!')
+      setPreview(null); setTheme(''); setManualText(''); setShowSchedule(false)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Erro')
+    } finally {
+      setPublishing(false)
+    }
   }
 
-  const exportJSON = () => {
-    const blob = new Blob([JSON.stringify(saved, null, 2)], { type: 'application/json' })
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'conteudo.json'; a.click()
-  }
+  const activePreview = manualMode ? buildManualPreview() : preview
 
   return (
     <div className="space-y-4">
+      {/* Type selector */}
       <div className="bg-[#1a1a1a] rounded-2xl p-4">
         <div className="grid grid-cols-4 gap-1.5 mb-3">
           {(['devotional','verse','prayer','image'] as ContentType[]).map(t => (
-            <button key={t} onClick={() => setType(t)}
+            <button key={t} onClick={() => { setType(t); setPreview(null); setManualText('') }}
               className={`py-2 rounded-xl text-[11px] font-semibold transition-colors ${type === t ? 'bg-[#c9a84c] text-[#111]' : 'bg-[#2a2a2a] text-white/50'}`}>
               {t === 'devotional' ? 'Devoc.' : t === 'verse' ? 'Versíc.' : t === 'prayer' ? 'Oração' : 'Imagem'}
             </button>
@@ -185,19 +217,65 @@ function GerarTab() {
           </div>
         )}
 
-        {type === 'image' ? (
-          <select value={imageStyle} onChange={e => setImageStyle(e.target.value)}
-            className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-[#c9a84c]/50 mb-3">
-            <option>bíblico épico Gustave Doré</option>
-            <option>Criação do mundo — Gênesis</option>
-            <option>Moisés e o Mar Vermelho</option>
-            <option>Davi e Golias</option>
-            <option>Nascimento de Jesus em Belém</option>
-            <option>Ressurreição — túmulo vazio</option>
-            <option>Pentecostes — línguas de fogo</option>
-            <option>Nova Jerusalém descendo do céu</option>
-          </select>
-        ) : (
+        {/* Manual mode toggle */}
+        {type !== 'image' && (
+          <div className="flex gap-1.5 mb-3">
+            <button onClick={() => setManualMode(false)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium transition-colors ${!manualMode ? 'bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/30' : 'bg-[#2a2a2a] text-white/40'}`}>
+              <Sparkles size={12}/> Gerar com IA
+            </button>
+            <button onClick={() => setManualMode(true)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium transition-colors ${manualMode ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-[#2a2a2a] text-white/40'}`}>
+              <PenLine size={12}/> Escrever manual
+            </button>
+          </div>
+        )}
+
+        {/* Image prompt (free text) */}
+        {type === 'image' && (
+          <>
+            <textarea
+              value={imagePrompt}
+              onChange={e => setImagePrompt(e.target.value)}
+              placeholder="Descreva a cena bíblica que deseja gerar...&#10;Ex: Davi tocando harpa ao entardecer, luz dourada, estilo Rembrandt"
+              rows={3}
+              className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-[#c9a84c]/50 mb-2 resize-none transition-colors"
+            />
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {['Criação do mundo — Gênesis','Moisés no Sinai','Davi e Golias','Nascimento de Jesus','Ressurreição — túmulo vazio','Pentecostes — fogo'].map(s => (
+                <button key={s} onClick={() => setImagePrompt(s)}
+                  className={`text-[10px] px-2.5 py-1 rounded-full transition-colors ${imagePrompt === s ? 'bg-[#c9a84c]/20 text-[#c9a84c] border border-[#c9a84c]/30' : 'bg-[#2a2a2a] text-white/40'}`}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Manual writing mode */}
+        {type !== 'image' && manualMode && (
+          <>
+            {type !== 'prayer' && (
+              <input value={theme} onChange={e => setTheme(e.target.value)}
+                placeholder={type === 'devotional' ? 'Título do devocional' : 'Referência bíblica (ex: João 3:16)'}
+                className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-[#c9a84c]/50 mb-2 transition-colors"/>
+            )}
+            <textarea
+              value={manualText}
+              onChange={e => setManualText(e.target.value)}
+              placeholder={
+                type === 'devotional' ? 'Escreva o conteúdo do devocional...\n(1ª linha será o título)'
+                : type === 'verse' ? 'Texto completo do versículo...'
+                : 'Texto da oração... (termine com Amém.)'
+              }
+              rows={6}
+              className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-[#c9a84c]/50 resize-none transition-colors"
+            />
+          </>
+        )}
+
+        {/* AI mode inputs */}
+        {type !== 'image' && !manualMode && (
           <>
             <input value={theme} onChange={e => setTheme(e.target.value)}
               placeholder="Tema (ou escolha abaixo)"
@@ -213,61 +291,141 @@ function GerarTab() {
           </>
         )}
 
-        <button onClick={generate} disabled={loading}
-          className="w-full py-3 rounded-xl font-bold text-sm text-[#111] flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.98] transition-all"
-          style={{ background: 'linear-gradient(90deg,#c9a84c,#e8c870)' }}>
-          {loading ? <Loader size={15} className="animate-spin"/> : <Sparkles size={15}/>}
-          {loading ? 'Gerando...' : 'Gerar com IA'}
-        </button>
+        {/* Action button */}
+        {(!manualMode || type === 'image') && (
+          <button onClick={generate} disabled={loading}
+            className="w-full py-3 rounded-xl font-bold text-sm text-[#111] flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.98] transition-all"
+            style={{ background: 'linear-gradient(90deg,#c9a84c,#e8c870)' }}>
+            {loading ? <Loader size={15} className="animate-spin"/> : <Sparkles size={15}/>}
+            {loading ? 'Gerando...' : 'Gerar com IA'}
+          </button>
+        )}
+
         {error && <p className="text-red-400 text-xs mt-2 bg-red-500/10 rounded-lg px-3 py-2">{error}</p>}
+        {publishMsg && <p className="text-green-400 text-xs mt-2 bg-green-500/10 rounded-lg px-3 py-2">✓ {publishMsg}</p>}
       </div>
 
-      {preview && (
+      {/* Preview */}
+      {(activePreview || imgUrl) && (
         <div className="bg-[#1a1a00] border border-[#c9a84c]/40 rounded-2xl p-4">
           <div className="flex justify-between items-center mb-3">
             <p className="text-[#c9a84c] font-semibold text-sm">Prévia</p>
-            <button onClick={() => setPreview(null)} className="text-white/30 text-xs">Descartar</button>
+            <button onClick={() => { setPreview(null); setImgUrl(''); setManualText('') }} className="text-white/30 text-xs">Descartar</button>
           </div>
+
           {type === 'image' && imgUrl && (
             <div className="mb-3">
-              <img src={imgUrl} alt="Gerada" className="w-full rounded-xl object-cover" style={{ maxHeight: 280 }}/>
+              {!imgLoaded && (
+                <div className="w-full h-48 bg-[#1a1a1a] rounded-xl flex items-center justify-center mb-2">
+                  <Loader size={20} className="text-[#c9a84c] animate-spin"/>
+                </div>
+              )}
+              <img
+                src={imgUrl}
+                alt="Gerada"
+                onLoad={() => setImgLoaded(true)}
+                className={`w-full rounded-xl object-cover transition-opacity ${imgLoaded ? 'opacity-100' : 'opacity-0 h-0'}`}
+                style={{ maxHeight: 300 }}
+              />
               <button onClick={() => { const a = document.createElement('a'); a.href = imgUrl; a.target='_blank'; a.click() }}
                 className="mt-2 flex items-center gap-1 text-[#c9a84c] text-xs">
                 <ExternalLink size={12}/> Abrir original
               </button>
             </div>
           )}
-          {type === 'devotional' && <>
-            <p className="text-white font-bold mb-1">{String(preview.title || '')}</p>
-            <p className="text-[#c9a84c] text-xs mb-1">{String(preview.reference || '')}</p>
-            <p className="text-white/50 text-sm leading-relaxed line-clamp-4">{String(preview.content || '')}</p>
+
+          {type === 'devotional' && activePreview && <>
+            <p className="text-white font-bold mb-1">{String(activePreview.title || '')}</p>
+            {activePreview.reference && <p className="text-[#c9a84c] text-xs mb-2">{String(activePreview.reference)}</p>}
+            {activePreview.verse && <p className="text-white/60 text-xs italic mb-2">"{String(activePreview.verse)}"</p>}
+            <p className="text-white/60 text-sm leading-relaxed line-clamp-5">{String(activePreview.content || '')}</p>
           </>}
-          {type === 'verse' && <p className="text-white italic">"{String(preview.text || '')}" — {String(preview.reference || '')}</p>}
-          {type === 'prayer' && <p className="text-white/70 text-sm italic leading-relaxed">{String(preview.prayer || '')}</p>}
-          <button onClick={approve}
-            className="mt-4 w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 bg-[#4ade80]/15 border border-[#4ade80]/40 text-[#4ade80] active:scale-[0.98]">
-            <Check size={15}/> Aprovar e salvar
-          </button>
+          {type === 'verse' && activePreview && (
+            <p className="text-white italic leading-relaxed">
+              &ldquo;{String(activePreview.text || '')}&rdquo;
+              {activePreview.reference ? <span className="text-[#c9a84c] not-italic ml-1">— {String(activePreview.reference)}</span> : null}
+            </p>
+          )}
+          {type === 'prayer' && activePreview && (
+            <p className="text-white/80 text-sm italic leading-relaxed whitespace-pre-line">{String(activePreview.prayer || '')}</p>
+          )}
+
+          {/* Publish buttons */}
+          <div className="flex gap-2 mt-4">
+            <button onClick={() => doPublish()} disabled={publishing}
+              className="flex-1 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 bg-[#4ade80]/15 border border-[#4ade80]/40 text-[#4ade80] active:scale-[0.98] disabled:opacity-50">
+              {publishing ? <Loader size={13} className="animate-spin"/> : <Upload size={13}/>}
+              Publicar agora
+            </button>
+            <button onClick={() => setShowSchedule(s => !s)}
+              className="flex-1 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 bg-blue-500/10 border border-blue-500/30 text-blue-400 active:scale-[0.98]">
+              <Clock size={13}/> Agendar
+            </button>
+          </div>
+
+          {showSchedule && (
+            <div className="mt-3 flex gap-2 items-center">
+              <input
+                type="date"
+                value={scheduleDate}
+                min={new Date().toISOString().slice(0, 10)}
+                onChange={e => setScheduleDate(e.target.value)}
+                className="flex-1 bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-blue-500/50"
+              />
+              <button onClick={() => scheduleDate && doPublish(scheduleDate)} disabled={!scheduleDate || publishing}
+                className="px-4 py-2 rounded-xl bg-blue-500/20 border border-blue-500/40 text-blue-400 text-sm font-semibold disabled:opacity-40 active:scale-[0.98]">
+                OK
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {saved.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-white/40 text-xs">{saved.length} itens salvos</p>
-            <button onClick={exportJSON} className="flex items-center gap-1 text-[#c9a84c] text-xs border border-[#c9a84c]/30 px-2 py-1 rounded-lg">
-              <Download size={11}/> JSON
+      {/* Manual publish button (when manual mode and has text) */}
+      {manualMode && manualText.trim() && type !== 'image' && !activePreview && (
+        <div className="bg-[#1a1a00] border border-[#c9a84c]/40 rounded-2xl p-4">
+          <p className="text-[#c9a84c] font-semibold text-sm mb-3">Prévia</p>
+          {type === 'devotional' && <p className="text-white font-bold mb-2">{manualText.split('\n')[0]}</p>}
+          <p className="text-white/60 text-sm leading-relaxed line-clamp-4 whitespace-pre-line">
+            {type === 'devotional' ? manualText.split('\n').slice(1).join('\n') : manualText}
+          </p>
+          <div className="flex gap-2 mt-4">
+            <button onClick={() => doPublish()} disabled={publishing}
+              className="flex-1 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 bg-[#4ade80]/15 border border-[#4ade80]/40 text-[#4ade80] active:scale-[0.98] disabled:opacity-50">
+              {publishing ? <Loader size={13} className="animate-spin"/> : <Upload size={13}/>}
+              Publicar agora
+            </button>
+            <button onClick={() => setShowSchedule(s => !s)}
+              className="flex-1 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 bg-blue-500/10 border border-blue-500/30 text-blue-400 active:scale-[0.98]">
+              <Clock size={13}/> Agendar
             </button>
           </div>
+          {showSchedule && (
+            <div className="mt-3 flex gap-2 items-center">
+              <input type="date" value={scheduleDate} min={new Date().toISOString().slice(0, 10)}
+                onChange={e => setScheduleDate(e.target.value)}
+                className="flex-1 bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2 text-white text-sm outline-none"/>
+              <button onClick={() => scheduleDate && doPublish(scheduleDate)} disabled={!scheduleDate || publishing}
+                className="px-4 py-2 rounded-xl bg-blue-500/20 border border-blue-500/40 text-blue-400 text-sm font-semibold disabled:opacity-40">
+                OK
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Published history */}
+      {published.length > 0 && (
+        <div>
+          <p className="text-white/40 text-xs mb-2">{published.length} itens publicados</p>
           <div className="space-y-2">
-            {saved.map(item => (
+            {published.map(item => (
               <div key={item.id} className="bg-[#1a1a1a] rounded-xl px-4 py-3 flex items-center gap-3">
                 <span>{item.type === 'devotional' ? '📖' : item.type === 'prayer' ? '🙏' : item.type === 'image' ? '🖼️' : '✨'}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm truncate">{String(item.data.title || item.data.reference || item.type)}</p>
-                  <p className="text-white/30 text-xs">{new Date(item.generatedAt).toLocaleDateString('pt-BR')}</p>
+                  <p className="text-white text-sm truncate">{String(item.data.title || item.data.reference || item.data.text || item.type)}</p>
+                  <p className="text-[#4ade80] text-xs flex items-center gap-1"><Check size={10}/> Publicado {new Date(item.generatedAt).toLocaleDateString('pt-BR')}</p>
                 </div>
-                <button onClick={() => remove(item.id)} className="text-white/20 p-1 active:text-red-400"><Trash2 size={14}/></button>
               </div>
             ))}
           </div>

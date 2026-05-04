@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 const GEMINI_KEY = process.env.GEMINI_API_KEY
 const MODEL = 'gemini-2.5-flash'
 
-async function callGemini(prompt: string): Promise<string> {
+async function callGemini(prompt: string, temperature = 0.7): Promise<string> {
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_KEY}`,
     {
@@ -11,7 +11,7 @@ async function callGemini(prompt: string): Promise<string> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.85, maxOutputTokens: 2048 }
+        generationConfig: { temperature, maxOutputTokens: 2048 }
       })
     }
   )
@@ -21,8 +21,13 @@ async function callGemini(prompt: string): Promise<string> {
 }
 
 function parseJSON(raw: string) {
-  const match = raw.match(/```(?:json)?\s*([\s\S]*?)```/) || raw.match(/(\{[\s\S]*\})/)
-  if (match) { try { return JSON.parse(match[1].trim()) } catch {} }
+  const block = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
+  if (block) { try { return JSON.parse(block[1].trim()) } catch {} }
+  const obj = raw.match(/\{[\s\S]*\}/)
+  if (obj) {
+    try { return JSON.parse(obj[0]) } catch {}
+    try { return JSON.parse(obj[0].replace(/,\s*([}\]])/g, '$1').replace(/[\x00-\x1F\x7F]/g, ' ')) } catch {}
+  }
   try { return JSON.parse(raw.trim()) } catch {}
   return null
 }
@@ -33,39 +38,101 @@ export async function POST(req: NextRequest) {
   const { type, theme, period, message } = await req.json()
 
   try {
+    // ── Devocional ────────────────────────────────────────────────────────────
     if (type === 'devotional') {
-      const t = theme || 'Graça Soberana de Deus'
-      const raw = await callGemini(`Você é um teólogo reformado. Crie um devocional bíblico em português sobre: "${t}".
-Responda SOMENTE com JSON:
-{"title":"título (máx 6 palavras)","theme":"${t}","reference":"Livro cap:ver","book":"livro-sem-acento","chapter":1,"verseNum":1,"verse":"texto ARC","content":"3 parágrafos ~200 palavras reformados","prayer":"oração 3-4 linhas terminando em Amém"}`)
+      const t = (theme || 'Graça Soberana de Deus').trim()
+      const raw = await callGemini(
+        `Você é um escritor de conteúdo para um app cristão reformado. Crie um devocional bíblico completo em português brasileiro sobre o tema: "${t}".
+
+ATENÇÃO: Responda EXCLUSIVAMENTE com JSON válido. Sem texto antes, sem markdown, sem explicações.
+
+{
+  "title": "Título de até 6 palavras",
+  "theme": "${t}",
+  "reference": "Livro Capítulo:Versículo",
+  "book": "identificador-minusculo-sem-acento",
+  "chapter": 1,
+  "verseNum": 1,
+  "verse": "Texto completo do versículo (Almeida Revista e Corrigida)",
+  "content": "Reflexão devocional com exatamente 3 parágrafos curtos (total ~180 palavras), perspectiva reformada, prática para o cristão de hoje.",
+  "prayer": "Oração curta de 3-4 linhas terminando com Amém."
+}`,
+        0.7
+      )
       const obj = parseJSON(raw)
-      if (!obj) return NextResponse.json({ error: 'JSON inválido', raw }, { status: 422 })
-      return NextResponse.json({ type: 'devotional', data: { id: `gen-d-${Date.now()}`, ...obj, generatedAt: new Date().toISOString() } })
+      if (!obj?.title || !obj?.content) {
+        return NextResponse.json({ error: `Gemini retornou formato inválido. Tente novamente.` }, { status: 422 })
+      }
+      return NextResponse.json({
+        type: 'devotional',
+        data: {
+          id: `gen-d-${Date.now()}`,
+          title: String(obj.title),
+          theme: String(obj.theme || t),
+          reference: String(obj.reference || ''),
+          book: String(obj.book || 'salmos'),
+          chapter: Number(obj.chapter) || 1,
+          verseNum: Number(obj.verseNum) || 1,
+          verse: String(obj.verse || ''),
+          content: String(obj.content || ''),
+          prayer: String(obj.prayer || ''),
+          generatedAt: new Date().toISOString(),
+        }
+      })
     }
 
+    // ── Versículo ─────────────────────────────────────────────────────────────
     if (type === 'verse') {
-      const t = theme || ''
-      const raw = await callGemini(`Sugira um versículo bíblico inspirador em português${t ? ` sobre o tema: "${t}"` : ''}.
-Responda SOMENTE com JSON:
-{"reference":"Livro cap:ver","book":"livro-sem-acento","chapter":1,"verse":1,"text":"texto completo ARC"}`)
+      const t = (theme || '').trim()
+      const raw = await callGemini(
+        `Indique um versículo bíblico inspirador em português${t ? ` sobre: "${t}"` : ''}.
+ATENÇÃO: Responda EXCLUSIVAMENTE com JSON válido. Sem texto antes, sem markdown.
+
+{"reference":"Livro Capítulo:Versículo","book":"identificador-sem-acento","chapter":1,"verse":1,"text":"Texto completo do versículo (ARC)"}`,
+        0.6
+      )
       const obj = parseJSON(raw)
-      if (!obj) return NextResponse.json({ error: 'JSON inválido', raw }, { status: 422 })
+      if (!obj?.text) return NextResponse.json({ error: 'Formato inválido. Tente novamente.' }, { status: 422 })
       return NextResponse.json({ type: 'verse', data: { id: `gen-v-${Date.now()}`, ...obj, generatedAt: new Date().toISOString() } })
     }
 
+    // ── Oração ────────────────────────────────────────────────────────────────
     if (type === 'prayer') {
       const p = period || 'manha'
       const label = p === 'manha' ? 'manhã' : 'noite'
-      const raw = await callGemini(`Crie uma oração de ${label} reformada em português.
-Responda SOMENTE com JSON:
-{"title":"Oração da ${p === 'manha' ? 'Manhã' : 'Noite'}","reference":"ref bíblica","book":"livro-sem-acento","chapter":1,"prayer":"oração 4-6 linhas terminando em Amém"}`)
+      const t = (theme || '').trim()
+      const themeHint = t ? ` O tema central da oração deve ser: "${t}".` : ''
+      const raw = await callGemini(
+        `Escreva uma oração de ${label} em português brasileiro para um cristão reformado.${themeHint}
+A oração deve ser íntima, confessional, bíblica, terminando com "Amém."
+ATENÇÃO: Responda EXCLUSIVAMENTE com JSON válido. Sem texto antes, sem markdown.
+
+{"title":"Oração da ${p === 'manha' ? 'Manhã' : 'Noite'}","prayer":"Texto da oração com 5-6 linhas terminando com Amém."}`,
+        0.8
+      )
       const obj = parseJSON(raw)
-      if (!obj) return NextResponse.json({ error: 'JSON inválido', raw }, { status: 422 })
-      return NextResponse.json({ type: 'prayer', data: { id: `gen-p-${p[0]}-${Date.now()}`, period: p, ...obj, generatedAt: new Date().toISOString() } })
+      if (!obj?.prayer) return NextResponse.json({ error: 'Formato inválido. Tente novamente.' }, { status: 422 })
+      return NextResponse.json({
+        type: 'prayer',
+        data: {
+          id: `gen-p-${p[0]}-${Date.now()}`,
+          period: p,
+          title: String(obj.title || `Oração da ${p === 'manha' ? 'Manhã' : 'Noite'}`),
+          prayer: String(obj.prayer),
+          theme: t || undefined,
+          generatedAt: new Date().toISOString(),
+        }
+      })
     }
 
+    // ── Chat IA ───────────────────────────────────────────────────────────────
     if (type === 'chat') {
-      const raw = await callGemini(`Você é um teólogo reformado e assistente bíblico em português brasileiro. Responda de forma clara, profunda e prática a esta mensagem do admin:\n\n"${message || ''}"\n\nResponda em texto livre (não JSON). Seja conciso mas completo.`)
+      const raw = await callGemini(
+        `Você é o assistente de conteúdo do app "Bíblia Sagrada Reformada". Sua função é ajudar o admin a criar e planejar conteúdo para o app: devocionais, orações, versículos e temas. Responda de forma direta, prática e objetiva. Evite discursos longos.
+
+Mensagem do admin: "${message || ''}"`,
+        0.8
+      )
       return NextResponse.json({ type: 'chat', data: { response: raw } })
     }
 

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getLatestPublished } from '@/lib/supabase'
 
 export const revalidate = 43200 // 12 hours — regenerates at 6h and 18h UTC naturally
 
@@ -101,11 +102,20 @@ export async function GET() {
     return NextResponse.json({ error: 'GEMINI_API_KEY não configurada' }, { status: 503 })
   }
 
+  const todayStr = new Date().toISOString().slice(0, 10)
+
   try {
+    // Check Supabase for admin-published content first
+    const [publishedDevotional, publishedMorning, publishedEvening] = await Promise.all([
+      getLatestPublished('devotional', todayStr),
+      getLatestPublished('prayer_manha', todayStr),
+      getLatestPublished('prayer_noite', todayStr),
+    ])
+
     const [devotional, morningPrayer, eveningPrayer] = await Promise.all([
-      generateDevotional(),
-      generatePrayer('manha'),
-      generatePrayer('noite'),
+      publishedDevotional ? Promise.resolve(publishedDevotional.data) : generateDevotional(),
+      publishedMorning ? Promise.resolve(publishedMorning.data) : generatePrayer('manha'),
+      publishedEvening ? Promise.resolve(publishedEvening.data) : generatePrayer('noite'),
     ])
 
     return NextResponse.json({
@@ -114,6 +124,11 @@ export async function GET() {
       eveningPrayer,
       generatedAt: new Date().toISOString(),
       day: dayOfYear(),
+      sources: {
+        devotional: publishedDevotional ? 'admin' : 'ai',
+        morningPrayer: publishedMorning ? 'admin' : 'ai',
+        eveningPrayer: publishedEvening ? 'admin' : 'ai',
+      }
     })
   } catch (e: unknown) {
     return NextResponse.json(
