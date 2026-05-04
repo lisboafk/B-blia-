@@ -30,7 +30,7 @@ function parseJSON(raw: string) {
 export async function POST(req: NextRequest) {
   if (!GEMINI_KEY) return NextResponse.json({ error: 'GEMINI_API_KEY não configurada' }, { status: 500 })
 
-  const { type, theme, period } = await req.json()
+  const { type, theme, period, message } = await req.json()
 
   try {
     if (type === 'devotional') {
@@ -62,6 +62,11 @@ Responda SOMENTE com JSON:
       const obj = parseJSON(raw)
       if (!obj) return NextResponse.json({ error: 'JSON inválido', raw }, { status: 422 })
       return NextResponse.json({ type: 'prayer', data: { id: `gen-p-${p[0]}-${Date.now()}`, period: p, ...obj, generatedAt: new Date().toISOString() } })
+    }
+
+    if (type === 'chat') {
+      const raw = await callGemini(`Você é um teólogo reformado e assistente bíblico em português brasileiro. Responda de forma clara, profunda e prática a esta mensagem do admin:\n\n"${message || ''}"\n\nResponda em texto livre (não JSON). Seja conciso mas completo.`)
+      return NextResponse.json({ type: 'chat', data: { response: raw } })
     }
 
     return NextResponse.json({ error: 'type inválido' }, { status: 400 })

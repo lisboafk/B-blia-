@@ -77,10 +77,13 @@ const BOOK_THEMES: Record<string, string> = {
   apocalipse:       'heavenly throne room with rainbow, Lamb opening seven seals, New Jerusalem descending from heaven surrounded by crystal sea and golden light',
 }
 
-function getVerseImageUrl(book: string, chapter: number, verseNum: number): string {
+function getVerseImageUrl(book: string, chapter: number, verseNum: number, period: 'morning' | 'evening' = 'morning'): string {
   const theme = BOOK_THEMES[book] || 'ancient sacred biblical scene with divine golden light and scripture scrolls'
-  const prompt = `${theme}, Gustave Doré biblical engraving style reimagined as photorealistic oil painting, extreme Rembrandt chiaroscuro with blinding divine light piercing deep shadows, overwhelming sense of the holy and transcendent, rich Renaissance pigments gold and crimson and midnight blue, faces filled with awe and reverence, hyper-detailed museum masterpiece, cinematic wide angle, no text no letters no watermark`
-  const seed = chapter * 97 + verseNum * 13
+  const periodMod = period === 'morning'
+    ? 'golden sunrise breaking through clouds, first light of dawn, morning dew on ancient stones'
+    : 'deep crimson sunset over ancient Jerusalem, stars emerging, moonlight casting silver glow on sacred stones'
+  const prompt = `${theme}, ${periodMod}, Gustave Doré biblical engraving style reimagined as photorealistic oil painting, extreme Rembrandt chiaroscuro with blinding divine light piercing deep shadows, overwhelming sense of the holy and transcendent, rich Renaissance pigments gold and crimson and midnight blue, faces filled with awe and reverence, hyper-detailed museum masterpiece, cinematic wide angle, no text no letters no watermark`
+  const seed = chapter * 97 + verseNum * 13 + (period === 'evening' ? 500 : 0)
   return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1080&height=1350&seed=${seed}&nologo=true&model=flux`
 }
 
@@ -287,10 +290,10 @@ export default function HojePage() {
   const [imgError, setImgError] = useState(false)
   const [speaking, setSpeaking] = useState(false)
 
-  // Deterministic AI image URL for this verse
+  // Deterministic AI image URL for this verse (different morning vs evening)
   const verseImageUrl = useMemo(
-    () => getVerseImageUrl(verseBook, verseChapter, verseVerse || 1),
-    [verseBook, verseChapter, verseVerse]
+    () => getVerseImageUrl(verseBook, verseChapter, verseVerse || 1, isMorning ? 'morning' : 'evening'),
+    [verseBook, verseChapter, verseVerse, isMorning]
   )
 
   // Gradient fallback colors (shown while AI image loads)
@@ -328,9 +331,17 @@ export default function HojePage() {
     }
     const key = `like-${verseId}`
     setLiked(localStorage.getItem(key) === '1')
-    setLikeCount(parseInt(localStorage.getItem(`${key}-count`) || '127', 10))
-    setShareCount(parseInt(localStorage.getItem(`share-${verseId}`) || '89', 10))
-  }, [verseId])
+    setLikeCount(parseInt(localStorage.getItem(`${key}-count`) || '0', 10))
+    setShareCount(parseInt(localStorage.getItem(`share-${verseId}`) || '0', 10))
+
+    // Track prayer opens (once per day per period)
+    const prayerKey = `prayer-today-${getDayOfYear()}-${isMorning ? 'm' : 'n'}`
+    if (!sessionStorage.getItem(prayerKey)) {
+      sessionStorage.setItem(prayerKey, '1')
+      const count = parseInt(localStorage.getItem('prayer-opens') || '0', 10)
+      localStorage.setItem('prayer-opens', String(count + 1))
+    }
+  }, [verseId, isMorning])
 
   const toggleLike = () => {
     const key = `like-${verseId}`

@@ -100,7 +100,7 @@ export default function QuizPage() {
   const [showAmem, setShowAmem] = useState(false)
 
   useEffect(() => {
-    const key = `quiz-week-${getWeekOfYear()}`
+    const key = `quiz-day-${getDayOfYear()}`
     const saved = parseInt(localStorage.getItem(key) || '0', 10)
     setPiecesUnlocked(saved)
     if (saved >= 4) setPhase('done')
@@ -125,7 +125,7 @@ export default function QuizPage() {
       if (qIndex + 1 < todayQuestions.length) {
         setQIndex(i => i + 1); setSelected(null)
       } else {
-        const key = `quiz-week-${getWeekOfYear()}`
+        const key = `quiz-day-${getDayOfYear()}`
         const prev = parseInt(localStorage.getItem(key) || '0', 10)
         const gained = newAnswers.filter(Boolean).length
         const next = Math.min(4, prev + Math.ceil(gained / 2))
@@ -241,7 +241,7 @@ export default function QuizPage() {
       </div>
 
       <div className="px-4 mb-6 text-center">
-        <h2 className="text-white font-bold text-xl mb-1">Quebra-cabeça semanal</h2>
+        <h2 className="text-white font-bold text-xl mb-1">Quebra-cabeça diário</h2>
         <p className="text-parchment/50 text-sm">
           {piecesUnlocked >= 4
             ? 'Parabéns! Você completou o quebra-cabeça desta semana.'
@@ -280,7 +280,7 @@ export default function QuizPage() {
               ))}
             </div>
             <p className="text-[#c9a84c] text-sm">{piecesUnlocked}/4 peças desbloqueadas</p>
-            {piecesUnlocked < 4 && <p className="text-parchment/40 text-xs mt-2">Volte amanhã para mais perguntas!</p>}
+            {piecesUnlocked < 4 && <p className="text-parchment/40 text-xs mt-2">Quiz renova automaticamente à meia-noite.</p>}
           </div>
         </div>
       )}

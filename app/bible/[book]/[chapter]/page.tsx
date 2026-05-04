@@ -90,6 +90,19 @@ export default function ChapterPage({ params }: Props) {
     return () => { ttsRef.current = false; window.speechSynthesis?.cancel() }
   }, [])
 
+  // Track reading time — counts full minutes spent on this chapter
+  useEffect(() => {
+    if (!data) return
+    const start = Date.now()
+    return () => {
+      const mins = Math.round((Date.now() - start) / 60000)
+      if (mins >= 1) {
+        const current = parseInt(localStorage.getItem('read-minutes') || '0', 10)
+        localStorage.setItem('read-minutes', String(current + mins))
+      }
+    }
+  }, [data])
+
   const playChapter = () => {
     if (!data) return
     if (ttsRef.current) {
