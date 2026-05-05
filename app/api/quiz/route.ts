@@ -30,8 +30,7 @@ Responda SOMENTE com JSON válido — um array de exatamente 5 objetos:
 "correct" é o índice (0-3) da resposta correta.`
             }]
           }],
-          generationConfig: { temperature: 0.92, maxOutputTokens: 1024 },
-          thinkingConfig: { thinkingBudget: 0 }
+          generationConfig: { temperature: 0.92, maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } }
         })
       }
     )

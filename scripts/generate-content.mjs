@@ -25,8 +25,7 @@ async function callGemini(prompt) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.8, maxOutputTokens: 2048 },
-    thinkingConfig: { thinkingBudget: 0 }
+    generationConfig: { temperature: 0.8, maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 0 } }
   }
   const res = await fetch(url, {
     method: 'POST',
