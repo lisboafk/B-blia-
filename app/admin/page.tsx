@@ -102,6 +102,8 @@ function GerarTab() {
   const [theme, setTheme] = useState('')
   const [period, setPeriod] = useState<'manha' | 'noite'>('manha')
   const [imagePrompt, setImagePrompt] = useState('')
+  const [imageVerseText, setImageVerseText] = useState('')
+  const [imageReference, setImageReference] = useState('')
   const [loading, setLoading] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [error, setError] = useState('')
@@ -124,11 +126,12 @@ function GerarTab() {
     setLoading(true); setError(''); setPreview(null); setImgUrl(''); setImgLoaded(false)
     try {
       if (type === 'image') {
-        const promptText = imagePrompt.trim() || 'cena bíblica épica Gustave Doré chiaroscuro divino'
-        const encoded = encodeURIComponent(`${promptText}, oil painting style, divine light, Rembrandt chiaroscuro, no text no watermark`)
+        // Only scene description goes to Pollinations — no text in the prompt
+        const scene = imagePrompt.trim() || 'cena bíblica épica Gustave Doré chiaroscuro luz divina'
+        const encoded = encodeURIComponent(`${scene}, oil painting, Rembrandt chiaroscuro, no text no letters no watermark`)
         const url = `https://image.pollinations.ai/prompt/${encoded}?width=1080&height=1350&seed=${Date.now() % 9999}&nologo=true&model=flux`
         setImgUrl(url)
-        setPreview({ imageUrl: url, prompt: promptText })
+        setPreview({ imageUrl: url, prompt: scene, verseText: imageVerseText.trim(), reference: imageReference.trim() })
         setLoading(false); return
       }
       const res = await fetch('/api/generate', {
@@ -231,14 +234,15 @@ function GerarTab() {
           </div>
         )}
 
-        {/* Image prompt (free text) */}
+        {/* Image inputs: scene + verse text separately */}
         {type === 'image' && (
           <>
+            <p className="text-white/40 text-[11px] mb-1.5 uppercase tracking-wider">Cena de fundo</p>
             <textarea
               value={imagePrompt}
               onChange={e => setImagePrompt(e.target.value)}
-              placeholder="Descreva a cena bíblica que deseja gerar...&#10;Ex: Davi tocando harpa ao entardecer, luz dourada, estilo Rembrandt"
-              rows={3}
+              placeholder="Descreva a cena bíblica...&#10;Ex: Davi tocando harpa ao entardecer, luz dourada, estilo Rembrandt"
+              rows={2}
               className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-[#c9a84c]/50 mb-2 resize-none transition-colors"
             />
             <div className="flex flex-wrap gap-1.5 mb-3">
@@ -249,6 +253,20 @@ function GerarTab() {
                 </button>
               ))}
             </div>
+            <p className="text-white/40 text-[11px] mb-1.5 uppercase tracking-wider">Texto do versículo (exibido sobre a imagem)</p>
+            <textarea
+              value={imageVerseText}
+              onChange={e => setImageVerseText(e.target.value)}
+              placeholder="Ex: No princípio criou Deus os céus e a terra."
+              rows={2}
+              className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-[#c9a84c]/50 mb-2 resize-none transition-colors"
+            />
+            <input
+              value={imageReference}
+              onChange={e => setImageReference(e.target.value)}
+              placeholder="Referência — Ex: Gênesis 1:1"
+              className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-[#c9a84c]/50 mb-3 transition-colors"
+            />
           </>
         )}
 
@@ -315,18 +333,40 @@ function GerarTab() {
 
           {type === 'image' && imgUrl && (
             <div className="mb-3">
-              {!imgLoaded && (
-                <div className="w-full h-48 bg-[#1a1a1a] rounded-xl flex items-center justify-center mb-2">
-                  <Loader size={20} className="text-[#c9a84c] animate-spin"/>
+              {/* Card preview — same layout as home page verse card */}
+              <div className="relative rounded-xl overflow-hidden" style={{ minHeight: 260 }}>
+                {!imgLoaded && (
+                  <div className="absolute inset-0 bg-[#1a1a1a] flex items-center justify-center">
+                    <Loader size={20} className="text-[#c9a84c] animate-spin"/>
+                  </div>
+                )}
+                <img
+                  src={imgUrl}
+                  alt="Fundo gerado"
+                  onLoad={() => setImgLoaded(true)}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                {/* Dark gradient overlay */}
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg,rgba(0,0,0,0.15) 0%,rgba(0,0,0,0.75) 100%)' }}/>
+                {/* Verse text overlay — same style as home */}
+                <div className="relative px-5 pt-6 pb-5 flex flex-col justify-end items-center" style={{ minHeight: 260 }}>
+                  {activePreview?.verseText ? (
+                    <p className="text-white font-bold italic text-center leading-snug mb-3"
+                      style={{ fontFamily: 'Georgia,serif', fontSize: 'clamp(1rem,4vw,1.25rem)', textShadow: '2px 3px 8px rgba(0,0,0,1)' }}>
+                      &ldquo;{String(activePreview.verseText)}&rdquo;
+                    </p>
+                  ) : null}
+                  {activePreview?.reference ? (
+                    <p className="font-bold italic text-center"
+                      style={{ fontFamily: 'Georgia,serif', fontSize: 'clamp(0.9rem,3.5vw,1.1rem)', color: '#f5d060', textShadow: '2px 2px 8px rgba(0,0,0,1)' }}>
+                      {String(activePreview.reference)}
+                    </p>
+                  ) : null}
+                  {!activePreview?.verseText && !activePreview?.reference && (
+                    <p className="text-white/40 text-xs italic text-center">Preencha o texto do versículo acima para ver como ficará</p>
+                  )}
                 </div>
-              )}
-              <img
-                src={imgUrl}
-                alt="Gerada"
-                onLoad={() => setImgLoaded(true)}
-                className={`w-full rounded-xl object-cover transition-opacity ${imgLoaded ? 'opacity-100' : 'opacity-0 h-0'}`}
-                style={{ maxHeight: 300 }}
-              />
+              </div>
               <button onClick={() => { const a = document.createElement('a'); a.href = imgUrl; a.target='_blank'; a.click() }}
                 className="mt-2 flex items-center gap-1 text-[#c9a84c] text-xs">
                 <ExternalLink size={12}/> Abrir original
