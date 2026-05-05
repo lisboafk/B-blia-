@@ -56,7 +56,7 @@ Responda SOMENTE com JSON válido:
   "chapter": 1,
   "verseNum": 1,
   "verseText": "texto completo do versículo em português Almeida Revista e Corrigida",
-  "reflection": "reflexão devocional de 3 parágrafos curtos (~200 palavras), reformada, aplicada ao cristão de hoje",
+  "reflection": "reflexão devocional de 2 parágrafos curtos (máximo 80 palavras no total), reformada, direta e aplicada ao cristão de hoje",
   "prayer": "oração intimista de 4-5 linhas terminando com Amém"
 }`)
   const obj = parseJSON(raw)

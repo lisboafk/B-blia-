@@ -54,7 +54,7 @@ ATENÇÃO: Responda EXCLUSIVAMENTE com JSON válido. Sem texto antes, sem markdo
   "chapter": 1,
   "verseNum": 1,
   "verse": "Texto completo do versículo (Almeida Revista e Corrigida)",
-  "content": "Reflexão devocional com exatamente 3 parágrafos curtos (total ~180 palavras), perspectiva reformada, prática para o cristão de hoje.",
+  "content": "Reflexão devocional com 2 parágrafos curtos (máximo 80 palavras no total), perspectiva reformada, prática e direta.",
   "prayer": "Oração curta de 3-4 linhas terminando com Amém."
 }`,
         0.7

@@ -205,6 +205,66 @@ function GerarTab() {
 
   const activePreview = manualMode ? buildManualPreview() : preview
 
+  const downloadImageWithText = async () => {
+    if (!imgUrl || !activePreview) return
+    const canvas = document.createElement('canvas')
+    canvas.width = 1080; canvas.height = 1350
+    const ctx = canvas.getContext('2d')!
+
+    // Draw background image
+    const img = new Image()
+    img.src = imgUrl
+    await new Promise<void>(resolve => { img.onload = () => resolve() })
+    ctx.drawImage(img, 0, 0, 1080, 1350)
+
+    // Dark gradient overlay
+    const grad = ctx.createLinearGradient(0, 0, 0, 1350)
+    grad.addColorStop(0, 'rgba(0,0,0,0.15)')
+    grad.addColorStop(1, 'rgba(0,0,0,0.78)')
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, 1080, 1350)
+
+    // Helper: wrap text
+    const wrapText = (text: string, x: number, y: number, maxW: number, lineH: number) => {
+      const words = text.split(' ')
+      let line = ''
+      let cy = y
+      for (const word of words) {
+        const test = line ? `${line} ${word}` : word
+        if (ctx.measureText(test).width > maxW && line) {
+          ctx.fillText(line, x, cy); line = word; cy += lineH
+        } else { line = test }
+      }
+      if (line) { ctx.fillText(line, x, cy); cy += lineH }
+      return cy
+    }
+
+    const verseText = String(activePreview.verseText || '')
+    const ref = String(activePreview.reference || '')
+
+    if (verseText) {
+      ctx.shadowColor = 'rgba(0,0,0,0.95)'; ctx.shadowBlur = 14
+      ctx.fillStyle = 'white'; ctx.textAlign = 'center'; ctx.font = 'bold italic 62px Georgia, serif'
+      const endY = wrapText(`"${verseText}"`, 540, 900, 920, 82)
+      if (ref) {
+        ctx.font = 'bold italic 52px Georgia, serif'; ctx.fillStyle = '#f5d060'
+        ctx.fillText(ref, 540, endY + 30)
+      }
+    } else if (ref) {
+      ctx.shadowColor = 'rgba(0,0,0,0.95)'; ctx.shadowBlur = 14
+      ctx.fillStyle = '#f5d060'; ctx.textAlign = 'center'; ctx.font = 'bold italic 58px Georgia, serif'
+      ctx.fillText(ref, 540, 1200)
+    }
+
+    canvas.toBlob(blob => {
+      if (!blob) return
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `versiculo-${Date.now()}.jpg`
+      a.click()
+    }, 'image/jpeg', 0.95)
+  }
+
   return (
     <div className="space-y-4">
       {/* Type selector */}
@@ -386,10 +446,16 @@ function GerarTab() {
                   )}
                 </div>
               </div>
-              <button onClick={() => { const a = document.createElement('a'); a.href = imgUrl; a.target='_blank'; a.click() }}
-                className="mt-2 flex items-center gap-1 text-[#c9a84c] text-xs">
-                <ExternalLink size={12}/> Abrir original
-              </button>
+              <div className="mt-2 flex gap-4">
+                <button onClick={downloadImageWithText}
+                  className="flex items-center gap-1 text-[#4ade80] text-xs font-semibold">
+                  <Download size={12}/> Baixar com texto
+                </button>
+                <button onClick={() => { const a = document.createElement('a'); a.href = imgUrl; a.target='_blank'; a.click() }}
+                  className="flex items-center gap-1 text-[#c9a84c] text-xs">
+                  <ExternalLink size={12}/> Abrir original
+                </button>
+              </div>
             </div>
           )}
 
