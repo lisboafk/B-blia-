@@ -10,18 +10,17 @@ export async function POST(req: NextRequest) {
   const encoded = encodeURIComponent(fullPrompt)
   const url = `https://image.pollinations.ai/prompt/${encoded}?width=1080&height=1350&seed=${seed}&nologo=true&model=flux`
 
-  const delays = [0, 3000, 6000] // 3 attempts: immediate, +3s, +6s
-
-  for (let attempt = 0; attempt < delays.length; attempt++) {
-    if (delays[attempt] > 0) await sleep(delays[attempt])
+  // 2 attempts: immediate then +2s — stays within Vercel 10s hobby timeout
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await sleep(2000)
 
     try {
       const res = await fetch(url, {
         headers: { 'User-Agent': 'Mozilla/5.0 BibleApp/1.0' },
-        signal: AbortSignal.timeout(35000),
+        signal: AbortSignal.timeout(6000),
       })
 
-      if (res.status === 429) continue // rate limited — retry
+      if (res.status === 429) continue // rate limited — retry once
 
       if (!res.ok) {
         return NextResponse.json({ error: `Pollinations ${res.status}` }, { status: 502 })
@@ -38,11 +37,12 @@ export async function POST(req: NextRequest) {
         },
       })
     } catch {
-      if (attempt === delays.length - 1) {
-        return NextResponse.json({ error: 'Timeout ao gerar imagem. Tente novamente.' }, { status: 504 })
-      }
+      // timeout or network error — retry if first attempt
     }
   }
 
-  return NextResponse.json({ error: 'Pollinations indisponível no momento. Tente em alguns segundos.' }, { status: 503 })
+  return NextResponse.json(
+    { error: 'Pollinations indisponível. Aguarde alguns segundos e tente novamente.' },
+    { status: 503 }
+  )
 }
