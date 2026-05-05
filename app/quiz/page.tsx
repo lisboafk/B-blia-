@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Trophy, CheckCircle, XCircle, Star, ChevronLeft, Volume2 } from 'lucide-react'
+import { Trophy, CheckCircle, XCircle, Star, ChevronLeft, Volume2, Share2 } from 'lucide-react'
 import Navigation from '@/components/Navigation'
 import { getTodayVerse } from '@/data/key-verses'
 
@@ -99,12 +99,65 @@ export default function QuizPage() {
   const [answers, setAnswers] = useState<(boolean | null)[]>(Array(5).fill(null))
   const [showAmem, setShowAmem] = useState(false)
 
+  // Perfect score image unlock
+  const [perfectScore, setPerfectScore] = useState(false)
+  const [unlockedImg, setUnlockedImg] = useState<string | null>(null)
+  const [imgLoading, setImgLoading] = useState(false)
+
+  // Share state
+  const [shared, setShared] = useState(false)
+
   useEffect(() => {
     const key = `quiz-day-${getDayOfYear()}`
     const saved = parseInt(localStorage.getItem(key) || '0', 10)
     setPiecesUnlocked(saved)
     if (saved >= 4) setPhase('done')
+
+    const perfectKey = `quiz-perfect-${getDayOfYear()}`
+    if (localStorage.getItem(perfectKey) === 'true') {
+      setPerfectScore(true)
+    }
   }, [])
+
+  // Fetch image when perfect score is achieved or loaded from storage
+  useEffect(() => {
+    if (!perfectScore || unlockedImg || imgLoading) return
+    setImgLoading(true)
+    fetch('/api/generate-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: `gloriosa cena bíblica celestial passagem ${weekVerse.reference}`,
+        seed: getDayOfYear(),
+      }),
+    })
+      .then(r => r.ok ? r.blob() : null)
+      .then(blob => {
+        if (blob) setUnlockedImg(URL.createObjectURL(blob))
+        setImgLoading(false)
+      })
+      .catch(() => setImgLoading(false))
+  }, [perfectScore])
+
+  // Cleanup blob URL on unmount
+  useEffect(() => {
+    return () => { if (unlockedImg) URL.revokeObjectURL(unlockedImg) }
+  }, [unlockedImg])
+
+  const handleShare = async () => {
+    const total = todayQuestions.length
+    const emoji = correct === total ? '🏆' : correct >= 3 ? '✅' : '📖'
+    const msg = `${emoji} Acertei ${correct}/${total} no Quiz Bíblico da Bíblia Sagrada Reformada!\n"${weekVerse.reference}"`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Quiz Bíblico', text: msg })
+      } else {
+        await navigator.clipboard.writeText(msg)
+        setShared(true)
+        setTimeout(() => setShared(false), 2500)
+      }
+    } catch {}
+  }
 
   const handleAnswer = (optIndex: number) => {
     if (selected !== null) return
@@ -131,12 +184,20 @@ export default function QuizPage() {
         const next = Math.min(4, prev + Math.ceil(gained / 2))
         localStorage.setItem(key, String(next))
         setPiecesUnlocked(next)
+
+        if (gained === todayQuestions.length) {
+          const perfectKey = `quiz-perfect-${getDayOfYear()}`
+          localStorage.setItem(perfectKey, 'true')
+          setPerfectScore(true)
+        }
+
         setPhase('done')
       }
     }, 1400)
   }
 
   const q = todayQuestions[qIndex]
+  const playedThisSession = answers.some(a => a !== null)
 
   if (phase === 'quiz') {
     return (
@@ -265,23 +326,85 @@ export default function QuizPage() {
       )}
 
       {phase === 'done' && (
-        <div className="px-4 text-center">
-          <div className="bg-[#1a1a1a] rounded-2xl p-8">
+        <div className="px-4">
+          <div className="bg-[#1a1a1a] rounded-2xl p-8 text-center">
             <div className="w-16 h-16 rounded-full bg-[#c9a84c]/20 flex items-center justify-center mx-auto mb-4">
-              <Trophy size={30} className="text-[#c9a84c]" />
+              {playedThisSession && correct === todayQuestions.length
+                ? <span className="text-3xl">🏆</span>
+                : <Trophy size={30} className="text-[#c9a84c]" />}
             </div>
-            <h3 className="text-white font-bold text-xl mb-2">Quiz concluído!</h3>
-            <p className="text-parchment/60 text-sm mb-4">Você acertou {correct} de {todayQuestions.length} perguntas</p>
+            <h3 className="text-white font-bold text-xl mb-2">
+              {playedThisSession && correct === todayQuestions.length ? 'Perfeito! Gabarito completo!' : 'Quiz concluído!'}
+            </h3>
+            {playedThisSession ? (
+              <p className="text-parchment/60 text-sm mb-4">Você acertou {correct} de {todayQuestions.length} perguntas</p>
+            ) : (
+              <p className="text-parchment/60 text-sm mb-4">Quiz já concluído hoje.</p>
+            )}
             <div className="flex justify-center gap-1 mb-4">
               {answers.map((a, i) => (
-                <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center ${a ? 'bg-[#4ade80]/20' : 'bg-red-500/20'}`}>
-                  {a ? <CheckCircle size={16} className="text-[#4ade80]" /> : <XCircle size={16} className="text-red-400" />}
+                <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center ${a === true ? 'bg-[#4ade80]/20' : a === false ? 'bg-red-500/20' : 'bg-white/5'}`}>
+                  {a === true
+                    ? <CheckCircle size={16} className="text-[#4ade80]" />
+                    : a === false
+                      ? <XCircle size={16} className="text-red-400" />
+                      : <div className="w-3 h-3 rounded-full bg-white/20" />}
                 </div>
               ))}
             </div>
             <p className="text-[#c9a84c] text-sm">{piecesUnlocked}/4 peças desbloqueadas</p>
             {piecesUnlocked < 4 && <p className="text-parchment/40 text-xs mt-2">Quiz renova automaticamente à meia-noite.</p>}
+
+            {/* Share button — only shown after playing this session */}
+            {playedThisSession && (
+              <button
+                onClick={handleShare}
+                className="mt-5 w-full flex items-center justify-center gap-2 py-3 rounded-full border border-[#c9a84c]/40 text-[#c9a84c] font-semibold text-sm active:scale-[0.97] transition-transform"
+              >
+                {shared
+                  ? <><CheckCircle size={16} className="text-[#4ade80]" /><span className="text-[#4ade80]">Copiado!</span></>
+                  : <><Share2 size={16} /><span>Compartilhar resultado</span></>}
+              </button>
+            )}
           </div>
+
+          {/* Perfect score image unlock */}
+          {perfectScore && (
+            <div className="mt-5">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <span className="text-xl">🔓</span>
+                <span className="text-[#c9a84c] font-bold text-base">Imagem desbloqueada!</span>
+                <span className="text-xl">✨</span>
+              </div>
+              {imgLoading ? (
+                <div className="rounded-2xl bg-[#2a2a2a] overflow-hidden" style={{ height: 300 }}>
+                  <div className="h-full flex flex-col items-center justify-center gap-3">
+                    <div className="w-8 h-8 border-2 border-[#c9a84c]/30 border-t-[#c9a84c] rounded-full animate-spin" />
+                    <p className="text-white/40 text-xs">Gerando imagem bíblica…</p>
+                  </div>
+                </div>
+              ) : unlockedImg ? (
+                <div className="relative rounded-2xl overflow-hidden" style={{ height: 300 }}>
+                  <img
+                    src={unlockedImg}
+                    alt="Imagem bíblica desbloqueada"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <p className="text-white/90 text-sm font-serif italic leading-relaxed">
+                      "{weekVerse.text.slice(0, 100)}{weekVerse.text.length > 100 ? '…' : ''}"
+                    </p>
+                    <p className="text-[#c9a84c] text-xs font-bold mt-1.5 tracking-wide">{weekVerse.reference}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-6 rounded-2xl bg-[#1a1a1a] text-center">
+                  <p className="text-white/40 text-sm">Imagem indisponível. Tente novamente mais tarde.</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
