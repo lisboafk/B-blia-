@@ -111,6 +111,7 @@ function GerarTab() {
   const [preview, setPreview] = useState<Record<string, unknown> | null>(null)
   const [imgUrl, setImgUrl] = useState('')
   const [imgLoaded, setImgLoaded] = useState(false)
+  const [imgError, setImgError] = useState(false)
   const [manualMode, setManualMode] = useState(false)
   const [manualText, setManualText] = useState('')
   const [scheduleDate, setScheduleDate] = useState('')
@@ -123,15 +124,27 @@ function GerarTab() {
   }, [])
 
   const generate = async () => {
-    setLoading(true); setError(''); setPreview(null); setImgUrl(''); setImgLoaded(false)
+    setLoading(true); setError(''); setPreview(null); setImgUrl(''); setImgLoaded(false); setImgError(false)
     try {
       if (type === 'image') {
-        // Only scene description goes to Pollinations — no text in the prompt
         const scene = imagePrompt.trim() || 'cena bíblica épica Gustave Doré chiaroscuro luz divina'
-        const encoded = encodeURIComponent(`${scene}, oil painting, Rembrandt chiaroscuro, no text no letters no watermark`)
-        const url = `https://image.pollinations.ai/prompt/${encoded}?width=1080&height=1350&seed=${Date.now() % 9999}&nologo=true&model=flux`
-        setImgUrl(url)
-        setPreview({ imageUrl: url, prompt: scene, verseText: imageVerseText.trim(), reference: imageReference.trim() })
+        const seed = Date.now() % 99999
+        // Proxy through server to avoid CORS — server fetches Pollinations and returns blob
+        const res = await fetch('/api/generate-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: scene, seed })
+        })
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}))
+          setError((json as Record<string,string>).error || 'Erro ao gerar imagem'); return
+        }
+        // Blob URL for display + original Pollinations URL for publishing
+        const blob = await res.blob()
+        const blobUrl = URL.createObjectURL(blob)
+        const originalUrl = res.headers.get('X-Image-Url') || blobUrl
+        setImgUrl(blobUrl)
+        setPreview({ imageUrl: originalUrl, blobUrl, prompt: scene, verseText: imageVerseText.trim(), reference: imageReference.trim() })
         setLoading(false); return
       }
       const res = await fetch('/api/generate', {
@@ -335,16 +348,22 @@ function GerarTab() {
             <div className="mb-3">
               {/* Card preview — same layout as home page verse card */}
               <div className="relative rounded-xl overflow-hidden" style={{ minHeight: 260 }}>
-                {!imgLoaded && (
+                {/* Placeholder while loading */}
+                {!imgLoaded && !imgError && (
                   <div className="absolute inset-0 bg-[#1a1a1a] flex items-center justify-center">
                     <Loader size={20} className="text-[#c9a84c] animate-spin"/>
                   </div>
                 )}
+                {/* Fallback gradient if image fails */}
+                {imgError && (
+                  <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg,#1a0a00,#3a1500,#0a0a1a)' }}/>
+                )}
                 <img
                   src={imgUrl}
-                  alt="Fundo gerado"
+                  alt=""
                   onLoad={() => setImgLoaded(true)}
-                  className="absolute inset-0 w-full h-full object-cover"
+                  onError={() => { setImgError(true); setImgLoaded(true) }}
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${imgLoaded && !imgError ? 'opacity-100' : 'opacity-0'}`}
                 />
                 {/* Dark gradient overlay */}
                 <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg,rgba(0,0,0,0.15) 0%,rgba(0,0,0,0.75) 100%)' }}/>
