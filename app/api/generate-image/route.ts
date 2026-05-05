@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
 export async function POST(req: NextRequest) {
   const { prompt, seed = 42 } = await req.json()
 
@@ -8,28 +10,39 @@ export async function POST(req: NextRequest) {
   const encoded = encodeURIComponent(fullPrompt)
   const url = `https://image.pollinations.ai/prompt/${encoded}?width=1080&height=1350&seed=${seed}&nologo=true&model=flux`
 
-  try {
-    // Fetch from server-side (no CORS restriction) and pipe back as blob
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 BibleApp/1.0' },
-      signal: AbortSignal.timeout(30000),
-    })
+  const delays = [0, 3000, 6000] // 3 attempts: immediate, +3s, +6s
 
-    if (!res.ok) {
-      return NextResponse.json({ error: `Pollinations ${res.status}` }, { status: 502 })
-    }
+  for (let attempt = 0; attempt < delays.length; attempt++) {
+    if (delays[attempt] > 0) await sleep(delays[attempt])
 
-    const contentType = res.headers.get('content-type') || 'image/jpeg'
-    const buf = await res.arrayBuffer()
+    try {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 BibleApp/1.0' },
+        signal: AbortSignal.timeout(35000),
+      })
 
-    return new NextResponse(buf, {
-      headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=3600',
-        'X-Image-Url': url,
+      if (res.status === 429) continue // rate limited — retry
+
+      if (!res.ok) {
+        return NextResponse.json({ error: `Pollinations ${res.status}` }, { status: 502 })
       }
-    })
-  } catch (e: unknown) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'Timeout' }, { status: 504 })
+
+      const contentType = res.headers.get('content-type') || 'image/jpeg'
+      const buf = await res.arrayBuffer()
+
+      return new NextResponse(buf, {
+        headers: {
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=3600',
+          'X-Image-Url': url,
+        },
+      })
+    } catch {
+      if (attempt === delays.length - 1) {
+        return NextResponse.json({ error: 'Timeout ao gerar imagem. Tente novamente.' }, { status: 504 })
+      }
+    }
   }
+
+  return NextResponse.json({ error: 'Pollinations indisponível no momento. Tente em alguns segundos.' }, { status: 503 })
 }
