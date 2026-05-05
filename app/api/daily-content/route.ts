@@ -4,7 +4,7 @@ import { getLatestPublished } from '@/lib/supabase'
 export const revalidate = 43200 // 12 hours — regenerates at 6h and 18h UTC naturally
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY
-const MODEL = 'gemini-2.0-flash'
+const MODEL = 'gemini-2.5-flash'
 
 async function callGemini(prompt: string): Promise<string> {
   const res = await fetch(
@@ -14,7 +14,8 @@ async function callGemini(prompt: string): Promise<string> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.88, maxOutputTokens: 2048 }
+        generationConfig: { temperature: 0.88, maxOutputTokens: 2048 },
+        thinkingConfig: { thinkingBudget: 0 }
       })
     }
   )
