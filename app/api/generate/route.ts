@@ -42,9 +42,10 @@ export async function POST(req: NextRequest) {
     if (type === 'devotional') {
       const t = (theme || 'Graça Soberana de Deus').trim()
       const raw = await callGemini(
-        `Você é um escritor de conteúdo para um app cristão reformado. Crie um devocional bíblico completo em português brasileiro sobre o tema: "${t}".
+        `Crie um devocional bíblico reformado em português sobre: "${t}".
+ATENÇÃO: Responda EXCLUSIVAMENTE com JSON válido. Sem texto antes, sem markdown.
 
-ATENÇÃO: Responda EXCLUSIVAMENTE com JSON válido. Sem texto antes, sem markdown, sem explicações.
+REGRA CRÍTICA para "content": EXATAMENTE 2 FRASES CURTAS. Máximo absoluto de 40 palavras. Não escreva mais.
 
 {
   "title": "Título de até 6 palavras",
@@ -54,8 +55,8 @@ ATENÇÃO: Responda EXCLUSIVAMENTE com JSON válido. Sem texto antes, sem markdo
   "chapter": 1,
   "verseNum": 1,
   "verse": "Texto completo do versículo (Almeida Revista e Corrigida)",
-  "content": "Reflexão devocional com 2 parágrafos curtos (máximo 80 palavras no total), perspectiva reformada, prática e direta.",
-  "prayer": "Oração curta de 3-4 linhas terminando com Amém."
+  "content": "APENAS 2 FRASES sobre o tema. Máximo 40 palavras. Nada mais.",
+  "prayer": "Oração de 3 linhas terminando com Amém."
 }`,
         0.7
       )
@@ -63,6 +64,17 @@ ATENÇÃO: Responda EXCLUSIVAMENTE com JSON válido. Sem texto antes, sem markdo
       if (!obj?.title || !obj?.content) {
         return NextResponse.json({ error: `Gemini retornou formato inválido. Tente novamente.` }, { status: 422 })
       }
+
+      const truncateToSentences = (text: string, max: number) => {
+        const sentences = text.match(/[^.!?]+[.!?]+/g) || [text]
+        let result = ''
+        for (const s of sentences) {
+          if ((result + s).split(' ').length > max) break
+          result += s
+        }
+        return result.trim() || text.split(' ').slice(0, max).join(' ')
+      }
+
       return NextResponse.json({
         type: 'devotional',
         data: {
@@ -74,7 +86,7 @@ ATENÇÃO: Responda EXCLUSIVAMENTE com JSON válido. Sem texto antes, sem markdo
           chapter: Number(obj.chapter) || 1,
           verseNum: Number(obj.verseNum) || 1,
           verse: String(obj.verse || ''),
-          content: String(obj.content || ''),
+          content: truncateToSentences(String(obj.content || ''), 50),
           prayer: String(obj.prayer || ''),
           generatedAt: new Date().toISOString(),
         }

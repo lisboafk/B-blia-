@@ -46,21 +46,36 @@ async function generateDevotional() {
     'O Amor de Deus', 'Confiança na Tribulação', 'A Igreja de Cristo',
   ]
   const theme = themes[dayOfYear() % themes.length]
-  const raw = await callGemini(`Você é um teólogo reformado. Crie um devocional bíblico em português brasileiro sobre: "${theme}".
-Responda SOMENTE com JSON válido:
+  const raw = await callGemini(`Crie um devocional bíblico reformado em português sobre: "${theme}".
+ATENÇÃO: Responda EXCLUSIVAMENTE com JSON válido. Sem markdown.
+
+REGRA CRÍTICA para o campo "reflection": ESCREVA EXATAMENTE 2 FRASES CURTAS. Não mais. Máximo absoluto de 40 palavras.
+
 {
-  "title": "título curto (máx 6 palavras)",
+  "title": "título (máx 6 palavras)",
   "theme": "${theme}",
   "reference": "Livro capítulo:versículo",
-  "book": "identificador em minúsculas sem acentos (ex: joao, genesis, salmos, romanos)",
+  "book": "identificador minúsculas sem acentos",
   "chapter": 1,
   "verseNum": 1,
-  "verseText": "texto completo do versículo em português Almeida Revista e Corrigida",
-  "reflection": "reflexão devocional de 2 parágrafos curtos (máximo 80 palavras no total), reformada, direta e aplicada ao cristão de hoje",
-  "prayer": "oração intimista de 4-5 linhas terminando com Amém"
+  "verseText": "texto do versículo (Almeida Revista e Corrigida)",
+  "reflection": "APENAS 2 FRASES CURTAS sobre o tema. Máximo 40 palavras. Nada mais.",
+  "prayer": "oração de 3 linhas terminando com Amém."
 }`)
   const obj = parseJSON(raw)
   if (!obj?.title || !obj?.reflection) throw new Error('Devotional JSON inválido')
+
+  // Hard cap: truncate to first 2 sentences if model ignores the word limit
+  const truncateToSentences = (text: string, max: number) => {
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text]
+    let result = ''
+    for (const s of sentences) {
+      if ((result + s).split(' ').length > max) break
+      result += s
+    }
+    return result.trim() || text.split(' ').slice(0, max).join(' ')
+  }
+
   return {
     id: `ai-d-${dayOfYear()}`,
     title: String(obj.title),
@@ -70,7 +85,7 @@ Responda SOMENTE com JSON válido:
     chapter: Number(obj.chapter) || 1,
     verse: Number(obj.verseNum) || 1,
     verseText: String(obj.verseText || ''),
-    reflection: String(obj.reflection),
+    reflection: truncateToSentences(String(obj.reflection), 50),
     prayer: String(obj.prayer || ''),
   }
 }
