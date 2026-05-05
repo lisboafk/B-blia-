@@ -45,7 +45,6 @@ function getDayOfYear(): number {
   const now = new Date()
   return Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000)
 }
-function getWeekOfYear(): number { return Math.floor(getDayOfYear() / 7) }
 
 function getTodayQuestions(): Question[] {
   const seed = getDayOfYear()
@@ -98,13 +97,7 @@ export default function QuizPage() {
   const [piecesUnlocked, setPiecesUnlocked] = useState(0)
   const [answers, setAnswers] = useState<(boolean | null)[]>(Array(5).fill(null))
   const [showAmem, setShowAmem] = useState(false)
-
-  // Perfect score image unlock
   const [perfectScore, setPerfectScore] = useState(false)
-  const [unlockedImg, setUnlockedImg] = useState<string | null>(null)
-  const [imgLoading, setImgLoading] = useState(false)
-
-  // Share state
   const [shared, setShared] = useState(false)
 
   useEffect(() => {
@@ -113,46 +106,33 @@ export default function QuizPage() {
     setPiecesUnlocked(saved)
     if (saved >= 4) setPhase('done')
 
-    const perfectKey = `quiz-perfect-${getDayOfYear()}`
-    if (localStorage.getItem(perfectKey) === 'true') {
+    if (localStorage.getItem(`quiz-perfect-${getDayOfYear()}`) === 'true') {
       setPerfectScore(true)
     }
   }, [])
 
-  // Fetch image when perfect score is achieved or loaded from storage
-  useEffect(() => {
-    if (!perfectScore || unlockedImg || imgLoading) return
-    setImgLoading(true)
-    fetch('/api/generate-image', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt: `gloriosa cena bíblica celestial passagem ${weekVerse.reference}`,
-        seed: getDayOfYear(),
-      }),
-    })
-      .then(r => r.ok ? r.blob() : null)
-      .then(blob => {
-        if (blob) setUnlockedImg(URL.createObjectURL(blob))
-        setImgLoading(false)
-      })
-      .catch(() => setImgLoading(false))
-  }, [perfectScore])
-
-  // Cleanup blob URL on unmount
-  useEffect(() => {
-    return () => { if (unlockedImg) URL.revokeObjectURL(unlockedImg) }
-  }, [unlockedImg])
-
   const handleShare = async () => {
     const total = todayQuestions.length
-    const emoji = correct === total ? '🏆' : correct >= 3 ? '✅' : '📖'
-    const msg = `${emoji} Acertei ${correct}/${total} no Quiz Bíblico da Bíblia Sagrada Reformada!\n"${weekVerse.reference}"`
+    const text = `Acertei ${correct}/${total} do quiz bíblia da família`
     try {
+      // On mobile with perfect score, try sharing the unlocked image file
+      if (perfectScore && typeof navigator !== 'undefined' && 'canShare' in navigator) {
+        try {
+          const res = await fetch('/api/daily-quiz-image')
+          if (res.ok) {
+            const blob = await res.blob()
+            const file = new File([blob], 'quiz-biblico.jpg', { type: blob.type || 'image/jpeg' })
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({ files: [file], text })
+              return
+            }
+          }
+        } catch {}
+      }
       if (navigator.share) {
-        await navigator.share({ title: 'Quiz Bíblico', text: msg })
+        await navigator.share({ title: 'Quiz Bíblico', text })
       } else {
-        await navigator.clipboard.writeText(msg)
+        await navigator.clipboard.writeText(text)
         setShared(true)
         setTimeout(() => setShared(false), 2500)
       }
@@ -186,8 +166,7 @@ export default function QuizPage() {
         setPiecesUnlocked(next)
 
         if (gained === todayQuestions.length) {
-          const perfectKey = `quiz-perfect-${getDayOfYear()}`
-          localStorage.setItem(perfectKey, 'true')
+          localStorage.setItem(`quiz-perfect-${getDayOfYear()}`, 'true')
           setPerfectScore(true)
         }
 
@@ -199,6 +178,7 @@ export default function QuizPage() {
   const q = todayQuestions[qIndex]
   const playedThisSession = answers.some(a => a !== null)
 
+  // ── Quiz screen ───────────────────────────────────────────────────────────
   if (phase === 'quiz') {
     return (
       <div className="min-h-screen bg-[#111]">
@@ -260,6 +240,7 @@ export default function QuizPage() {
     )
   }
 
+  // ── Puzzle / Done screen ──────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#111] pb-28">
       <div className="flex items-center justify-between px-4 pt-12 pb-4">
@@ -270,43 +251,82 @@ export default function QuizPage() {
         <button className="bg-[#2a1e00] rounded-xl p-2.5"><Trophy size={22} className="text-[#c9a84c]" /></button>
       </div>
 
+      {/* ── Top square: transforms into unlocked image on perfect score ── */}
       <div className="mx-4 mb-6">
-        <div className="relative rounded-2xl border-2 border-[#c9a84c]/50 bg-[#1a1200] overflow-hidden" style={{ minHeight: 280 }}>
-          <div className="absolute top-3 left-3 w-8 h-8 border-l-2 border-t-2 border-[#c9a84c]/40 rounded-tl" />
-          <div className="absolute top-3 right-3 w-8 h-8 border-r-2 border-t-2 border-[#c9a84c]/40 rounded-tr" />
-          <div className="absolute bottom-3 left-3 w-8 h-8 border-l-2 border-b-2 border-[#c9a84c]/40 rounded-bl" />
-          <div className="absolute bottom-3 right-3 w-8 h-8 border-r-2 border-b-2 border-[#c9a84c]/40 rounded-br" />
-          <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
-            {[0,1,2,3].map(i => (
-              <div key={i} className={`border border-[#c9a84c]/20 flex items-center justify-center ${i < piecesUnlocked ? 'opacity-0' : ''}`}>
-                {i >= piecesUnlocked && <div className="bg-[#c9a84c]/15 rounded-xl p-2"><span className="text-[#c9a84c] text-2xl">🔒</span></div>}
-              </div>
-            ))}
-          </div>
-          <div className="relative flex flex-col items-center justify-center py-12 px-8 text-center" style={{ minHeight: 280 }}>
-            <div className="bg-[#111]/80 rounded-2xl px-4 py-5 backdrop-blur">
-              <p className="text-white/90 text-sm italic leading-relaxed font-serif mb-3">
+        {perfectScore ? (
+          // Unlocked biblical image replaces the puzzle square
+          <div className="relative rounded-2xl border-2 border-[#c9a84c] overflow-hidden bg-[#1a1200]" style={{ minHeight: 280 }}>
+            {/* Gold corner decorations */}
+            <div className="absolute top-3 left-3 w-8 h-8 border-l-2 border-t-2 border-[#c9a84c] rounded-tl z-10" />
+            <div className="absolute top-3 right-3 w-8 h-8 border-r-2 border-t-2 border-[#c9a84c] rounded-tr z-10" />
+            <div className="absolute bottom-3 left-3 w-8 h-8 border-l-2 border-b-2 border-[#c9a84c] rounded-bl z-10" />
+            <div className="absolute bottom-3 right-3 w-8 h-8 border-r-2 border-b-2 border-[#c9a84c] rounded-br z-10" />
+            {/* Unlocked badge */}
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-black/60 rounded-full px-3 py-1">
+              <span className="text-sm">🔓</span>
+              <span className="text-[#c9a84c] text-xs font-bold tracking-widest">DESBLOQUEADO</span>
+            </div>
+            {/* Daily biblical image — same for all users, cached 24h */}
+            <img
+              src="/api/daily-quiz-image"
+              alt="Imagem bíblica desbloqueada"
+              className="w-full object-cover"
+              style={{ minHeight: 280, maxHeight: 360 }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-5">
+              <p className="text-white/90 text-sm font-serif italic leading-relaxed">
                 "{weekVerse.text.slice(0, 100)}{weekVerse.text.length > 100 ? '…' : ''}"
               </p>
-              <p className="text-[#c9a84c] text-xs font-semibold tracking-wider">{weekVerse.reference}</p>
-              {piecesUnlocked >= 4 && (
-                <div className="mt-3 flex items-center justify-center gap-1.5">
-                  <Star size={14} className="text-[#c9a84c]" fill="currentColor" />
-                  <span className="text-[#c9a84c] text-xs font-bold">COMPLETO</span>
-                  <Star size={14} className="text-[#c9a84c]" fill="currentColor" />
-                </div>
-              )}
+              <p className="text-[#c9a84c] text-xs font-bold mt-1.5 tracking-wide">{weekVerse.reference}</p>
+              <div className="mt-2 flex items-center gap-1.5">
+                <Star size={12} className="text-[#c9a84c]" fill="currentColor" />
+                <span className="text-[#c9a84c] text-xs font-bold tracking-widest">GABARITO COMPLETO</span>
+                <Star size={12} className="text-[#c9a84c]" fill="currentColor" />
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          // Original locked puzzle square
+          <div className="relative rounded-2xl border-2 border-[#c9a84c]/50 bg-[#1a1200] overflow-hidden" style={{ minHeight: 280 }}>
+            <div className="absolute top-3 left-3 w-8 h-8 border-l-2 border-t-2 border-[#c9a84c]/40 rounded-tl" />
+            <div className="absolute top-3 right-3 w-8 h-8 border-r-2 border-t-2 border-[#c9a84c]/40 rounded-tr" />
+            <div className="absolute bottom-3 left-3 w-8 h-8 border-l-2 border-b-2 border-[#c9a84c]/40 rounded-bl" />
+            <div className="absolute bottom-3 right-3 w-8 h-8 border-r-2 border-b-2 border-[#c9a84c]/40 rounded-br" />
+            <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
+              {[0,1,2,3].map(i => (
+                <div key={i} className={`border border-[#c9a84c]/20 flex items-center justify-center ${i < piecesUnlocked ? 'opacity-0' : ''}`}>
+                  {i >= piecesUnlocked && <div className="bg-[#c9a84c]/15 rounded-xl p-2"><span className="text-[#c9a84c] text-2xl">🔒</span></div>}
+                </div>
+              ))}
+            </div>
+            <div className="relative flex flex-col items-center justify-center py-12 px-8 text-center" style={{ minHeight: 280 }}>
+              <div className="bg-[#111]/80 rounded-2xl px-4 py-5 backdrop-blur">
+                <p className="text-white/90 text-sm italic leading-relaxed font-serif mb-3">
+                  "{weekVerse.text.slice(0, 100)}{weekVerse.text.length > 100 ? '…' : ''}"
+                </p>
+                <p className="text-[#c9a84c] text-xs font-semibold tracking-wider">{weekVerse.reference}</p>
+                {piecesUnlocked >= 4 && (
+                  <div className="mt-3 flex items-center justify-center gap-1.5">
+                    <Star size={14} className="text-[#c9a84c]" fill="currentColor" />
+                    <span className="text-[#c9a84c] text-xs font-bold">COMPLETO</span>
+                    <Star size={14} className="text-[#c9a84c]" fill="currentColor" />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="px-4 mb-6 text-center">
         <h2 className="text-white font-bold text-xl mb-1">Quebra-cabeça diário</h2>
         <p className="text-parchment/50 text-sm">
-          {piecesUnlocked >= 4
-            ? 'Parabéns! Você completou o quebra-cabeça desta semana.'
-            : `${piecesUnlocked}/4 peças desbloqueadas — faça o quiz para ganhar mais!`}
+          {perfectScore
+            ? '🔓 Imagem bíblica desbloqueada! Gabarito completo.'
+            : piecesUnlocked >= 4
+              ? 'Parabéns! Você completou o quebra-cabeça desta semana.'
+              : `${piecesUnlocked}/4 peças desbloqueadas — faça o quiz para ganhar mais!`}
         </p>
         <div className="mt-3 mx-8 bg-[#2a2a2a] rounded-full h-2">
           <div className="bg-[#c9a84c] h-2 rounded-full transition-all duration-500"
@@ -326,21 +346,22 @@ export default function QuizPage() {
       )}
 
       {phase === 'done' && (
-        <div className="px-4">
-          <div className="bg-[#1a1a1a] rounded-2xl p-8 text-center">
+        <div className="px-4 text-center">
+          <div className="bg-[#1a1a1a] rounded-2xl p-8">
             <div className="w-16 h-16 rounded-full bg-[#c9a84c]/20 flex items-center justify-center mx-auto mb-4">
               {playedThisSession && correct === todayQuestions.length
                 ? <span className="text-3xl">🏆</span>
                 : <Trophy size={30} className="text-[#c9a84c]" />}
             </div>
             <h3 className="text-white font-bold text-xl mb-2">
-              {playedThisSession && correct === todayQuestions.length ? 'Perfeito! Gabarito completo!' : 'Quiz concluído!'}
+              {playedThisSession && correct === todayQuestions.length
+                ? 'Perfeito! Gabarito completo!'
+                : 'Quiz concluído!'}
             </h3>
-            {playedThisSession ? (
-              <p className="text-parchment/60 text-sm mb-4">Você acertou {correct} de {todayQuestions.length} perguntas</p>
-            ) : (
-              <p className="text-parchment/60 text-sm mb-4">Quiz já concluído hoje.</p>
-            )}
+            {playedThisSession
+              ? <p className="text-parchment/60 text-sm mb-4">Você acertou {correct} de {todayQuestions.length} perguntas</p>
+              : <p className="text-parchment/60 text-sm mb-4">Quiz já concluído hoje.</p>}
+
             <div className="flex justify-center gap-1 mb-4">
               {answers.map((a, i) => (
                 <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center ${a === true ? 'bg-[#4ade80]/20' : a === false ? 'bg-red-500/20' : 'bg-white/5'}`}>
@@ -352,59 +373,20 @@ export default function QuizPage() {
                 </div>
               ))}
             </div>
+
             <p className="text-[#c9a84c] text-sm">{piecesUnlocked}/4 peças desbloqueadas</p>
             {piecesUnlocked < 4 && <p className="text-parchment/40 text-xs mt-2">Quiz renova automaticamente à meia-noite.</p>}
 
-            {/* Share button — only shown after playing this session */}
-            {playedThisSession && (
-              <button
-                onClick={handleShare}
-                className="mt-5 w-full flex items-center justify-center gap-2 py-3 rounded-full border border-[#c9a84c]/40 text-[#c9a84c] font-semibold text-sm active:scale-[0.97] transition-transform"
-              >
-                {shared
-                  ? <><CheckCircle size={16} className="text-[#4ade80]" /><span className="text-[#4ade80]">Copiado!</span></>
-                  : <><Share2 size={16} /><span>Compartilhar resultado</span></>}
-              </button>
-            )}
+            {/* Share button — always visible in done phase */}
+            <button
+              onClick={handleShare}
+              className="mt-5 w-full flex items-center justify-center gap-2 py-3 rounded-full border border-[#c9a84c]/40 text-[#c9a84c] font-semibold text-sm active:scale-[0.97] transition-transform"
+            >
+              {shared
+                ? <><CheckCircle size={16} className="text-[#4ade80]" /><span className="text-[#4ade80]">Copiado!</span></>
+                : <><Share2 size={16} /><span>Compartilhar resultado</span></>}
+            </button>
           </div>
-
-          {/* Perfect score image unlock */}
-          {perfectScore && (
-            <div className="mt-5">
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <span className="text-xl">🔓</span>
-                <span className="text-[#c9a84c] font-bold text-base">Imagem desbloqueada!</span>
-                <span className="text-xl">✨</span>
-              </div>
-              {imgLoading ? (
-                <div className="rounded-2xl bg-[#2a2a2a] overflow-hidden" style={{ height: 300 }}>
-                  <div className="h-full flex flex-col items-center justify-center gap-3">
-                    <div className="w-8 h-8 border-2 border-[#c9a84c]/30 border-t-[#c9a84c] rounded-full animate-spin" />
-                    <p className="text-white/40 text-xs">Gerando imagem bíblica…</p>
-                  </div>
-                </div>
-              ) : unlockedImg ? (
-                <div className="relative rounded-2xl overflow-hidden" style={{ height: 300 }}>
-                  <img
-                    src={unlockedImg}
-                    alt="Imagem bíblica desbloqueada"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <p className="text-white/90 text-sm font-serif italic leading-relaxed">
-                      "{weekVerse.text.slice(0, 100)}{weekVerse.text.length > 100 ? '…' : ''}"
-                    </p>
-                    <p className="text-[#c9a84c] text-xs font-bold mt-1.5 tracking-wide">{weekVerse.reference}</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-6 rounded-2xl bg-[#1a1a1a] text-center">
-                  <p className="text-white/40 text-sm">Imagem indisponível. Tente novamente mais tarde.</p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
 
