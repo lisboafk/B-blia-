@@ -44,9 +44,10 @@ jobs:
         run: node scripts/generate-content.mjs
 
       - name: Commit e push
+        if: always()
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: conteúdo IA gerado (${{ steps.period.outputs.value }}) [skip ci]"
-          file_pattern: data/generated.json
+          file_pattern: data/generated.json public/daily/*
           commit_user_name: "github-actions[bot]"
           commit_user_email: "github-actions[bot]@users.noreply.github.com"
